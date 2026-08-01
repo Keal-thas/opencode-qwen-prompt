@@ -3,9 +3,9 @@
   "agent": {
     "build": {
       "prompt": "{file:./system-prompt.txt}"
+    },
+    "plan": {
+      "prompt": "{file:./system-prompt.txt}"
     }
-  },
-  "plugin": [
-    "file:///C:/Users/<you>/.config/opencode/plugins/system-prompt-tools.js"
-  ]
+  }
 }
