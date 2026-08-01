@@ -2,10 +2,14 @@
 
 You are being asked to configure the local opencode installation on
 this machine to use a custom system prompt instead of the built-in
-default. This environment is git-bash on Windows. Follow these steps in
-order, running the commands yourself. Don't skip the verification step.
+default. This environment is git-bash on Windows, and it does NOT have
+internet access — the contents of this repo were downloaded elsewhere
+as a zip and transferred here. Do not attempt `git clone` or any
+network fetch; work entirely from the already-extracted local copy.
+Follow these steps in order, running the commands yourself. Don't skip
+the verification step.
 
-## 0. Find the opencode config directory
+## 0. Find the opencode config directory and the extracted source
 
 Run:
 
@@ -23,11 +27,27 @@ CONFIG_DIR="$(opencode debug paths | awk '/^config/ {print $2}')"
 echo "$CONFIG_DIR"
 ```
 
-## 1. Get the files
+Now find where the extracted zip landed. It was downloaded from GitHub
+as `opencode-qwen-prompt-master.zip` and extracted somewhere on this
+machine (Desktop, Downloads, wherever it was transferred to) — the
+extracted folder is named `opencode-qwen-prompt-master` (GitHub's zip
+export appends the branch name) unless it was renamed. Locate it, e.g.:
 
 ```bash
-git clone https://github.com/Keal-thas/opencode-qwen-prompt.git /tmp/opencode-qwen-prompt-src
-cp /tmp/opencode-qwen-prompt-src/system-prompt.txt "$CONFIG_DIR/system-prompt.txt"
+find ~/Desktop ~/Downloads -maxdepth 2 -iname "opencode-qwen-prompt*" -type d 2>/dev/null
+```
+
+Set it as a variable — substitute the real path you found:
+
+```bash
+SRC_DIR="/path/to/opencode-qwen-prompt-master"
+ls "$SRC_DIR"   # sanity check: should show README.md, system-prompt.txt, etc.
+```
+
+## 1. Copy the files in
+
+```bash
+cp "$SRC_DIR/system-prompt.txt" "$CONFIG_DIR/system-prompt.txt"
 ```
 
 ## 2. Wire it into opencode.json
@@ -39,7 +59,7 @@ Check whether `$CONFIG_DIR/opencode.json` already exists.
   on top — this repo doesn't know your provider setup.
 
   ```bash
-  cp /tmp/opencode-qwen-prompt-src/opencode.json.example "$CONFIG_DIR/opencode.json"
+  cp "$SRC_DIR/opencode.json.example" "$CONFIG_DIR/opencode.json"
   ```
 
 - **If it already exists** (most likely — your Ollama/vLLM provider is
@@ -72,7 +92,7 @@ Qwen model — you have no other way to check it worked.
 
 ```bash
 mkdir -p "$CONFIG_DIR/plugins"
-cp /tmp/opencode-qwen-prompt-src/system-prompt-tools.js "$CONFIG_DIR/plugins/system-prompt-tools.js"
+cp "$SRC_DIR/system-prompt-tools.js" "$CONFIG_DIR/plugins/system-prompt-tools.js"
 ```
 
 Add to `opencode.json`'s top level (merge, don't replace, same rule as
@@ -110,16 +130,15 @@ directory/platform/date. If it still looks like the original verbose
 default, the `agent.prompt` config wasn't picked up — check for a JSON
 syntax error in `opencode.json` first.
 
-## 5. Cleanup
+## 5. Cleanup (optional)
 
-```bash
-rm -rf /tmp/opencode-qwen-prompt-src
-```
-
-Leave `$CONFIG_DIR/system-prompt.txt` and (if installed)
-`$CONFIG_DIR/plugins/system-prompt-tools.js` in place — those are the
-files that actually matter, everything else was scaffolding to get them
-there.
+`$SRC_DIR` (the extracted zip) and the original zip file itself can be
+deleted if you don't want them left on disk — they're not needed once
+`$CONFIG_DIR/system-prompt.txt` and (if installed)
+`$CONFIG_DIR/plugins/system-prompt-tools.js` are in place, those two
+are the only files that actually matter going forward. Ask the human
+running this before deleting anything they might want to keep around
+instead of assuming.
 
 ## Report back
 

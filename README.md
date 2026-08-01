@@ -61,5 +61,8 @@ don't benefit from a "talk to an expert engineer" identity.
   machine. Run the viewer plugin once against the real setup before
   trusting that it also falls back to `default.txt`.
 - The target restricted machine runs opencode as an offline single-exe
-  build with git-bash available (has `git`/`curl`), reaches only
-  github.com — deployment goes through `git clone`, see SETUP.md.
+  build with git-bash available, but has no internet access at all —
+  the repo gets downloaded as a zip on a separate sandboxed machine
+  that does have internet, then transferred over and extracted locally.
+  SETUP.md assumes the extracted copy is already sitting on disk and
+  works entirely offline from there.
