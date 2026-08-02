@@ -68,6 +68,25 @@ items. This file is about *how* to work on it.
   delegation *prompt* line (above) gets the model to invoke `general`
   in the first place.
 
+- **Checking for full-width/Chinese punctuation via shell `grep -P` in
+  this bash environment is unreliable** — multi-byte Unicode literals
+  typed into a grep pattern get garbled (matches ASCII `"` instead of
+  the intended curly/full-width chars, silently). Verified by running
+  the same check both ways and getting different results. Use a small
+  Python script with explicit `chr(0xFF0C)`-style codepoints instead —
+  confirmed accurate. Relevant any time future Chinese content gets
+  added here, given the global rule (`~/.claude/CLAUDE.md`) is English
+  punctuation only, even in Chinese text — missed this once writing
+  `SETUP-walkthrough.zh.md` from scratch, caught and fixed on a
+  follow-up review, not while writing it originally.
+- **Don't "fix" punctuation in verbatim captured data** —
+  `captured-example-prompt.txt` has real full-width Chinese punctuation
+  inside a captured custom-instructions block, left as-is on purpose:
+  it's a literal dump of what a real request actually contained, not
+  prose written for this repo. Rewriting it to match the punctuation
+  rule would misrepresent what was actually captured. The rule applies
+  to docs authored here, not to raw logged/captured evidence.
+
 ## Where things live
 
 - opencode's real upstream repo is
