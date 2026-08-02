@@ -8,10 +8,13 @@ to be handed directly to an agent (paste it as a task, or point a coding
 agent at this repo) and executed step by step, since the intended
 machine to run this on is a network-restricted box you'd rather not do
 this by hand on repeatedly. This file (README.md) is the human-readable
-explanation of what it does and why. [SETUP.zh.md](SETUP.zh.md) is a
-Chinese, human-facing walkthrough of the same SETUP.md steps — for
-whoever is watching over (or manually doing) the deployment on that
-machine, not meant to be executed literally.
+explanation of what it does and why.
+[SETUP-walkthrough.zh.md](SETUP-walkthrough.zh.md) is a Chinese,
+human-facing walkthrough of the same SETUP.md steps — for whoever is
+watching over (or manually doing) the deployment on that machine, not
+meant to be executed literally (hence not named `SETUP.zh.md` — it's
+not a translation of the executable script, it's a different kind of
+document).
 
 ## What's here
 
