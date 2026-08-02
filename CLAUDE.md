@@ -143,15 +143,21 @@ items. This file is about *how* to work on it.
   restricted machine's own opencode to execute (matches SETUP.md's
   intended usage — written for an agent to run, not a human to follow
   by hand).
-- **Known model quirk, not an opencode/repo issue**: user hit a "tool
+- **Known model quirk, not an opencode/repo issue — better explanation
+  found 2026-08-02, correcting an earlier guess**: user hit a "tool
   call not supported" error on one smaller Qwen model served via Ollama
-  (referred to as "qwen2.7b" — exact model unconfirmed). Likely cause:
-  Ollama tool-calling depends on that model's Modelfile chat template
-  including a tools branch (e.g. `{{ if .Tools }}`) — not every Qwen
-  tag in the Ollama library has one, and small models may not be
-  function-calling-tuned at all. Not something this repo's system
-  prompt override can fix; if it recurs after the vLLM migration, check
-  vLLM's `--tool-call-parser` flag instead.
+  (referred to as "qwen2.7b" — exact model unconfirmed). Originally
+  guessed this was a missing tools-branch in the model's Ollama
+  Modelfile chat template. opencode's own `providers.mdx` docs give a
+  more likely, more actionable cause: "If tool calls aren't working,
+  try increasing `num_ctx` in Ollama. Start around 16k - 32k." — Ollama
+  defaults `num_ctx` low (historically 2048), which can silently
+  truncate the tool-call schema/instructions out of the prompt entirely
+  before the model ever sees them, producing exactly this symptom.
+  Check `num_ctx` first; the chat-template theory is still possible but
+  now the second thing to check, not the first. Not something this
+  repo's system prompt override can fix either way; if it recurs after
+  the vLLM migration, check vLLM's `--tool-call-parser` flag instead.
 
 - **The models.dev catalog fetch does NOT block startup on a fully
   offline machine — verified directly from source, not assumed**

@@ -3,3 +3,8 @@
 .DS_Store
 Thumbs.db
 node_modules/
+
+# Local-only copy of opencode's own docs (packages/web/src/content/docs/*.mdx
+# from anomalyco/opencode), for reference while working on this repo. Third-
+# party content, not part of this repo's actual deliverable - not tracked.
+opencode-docs-reference/
