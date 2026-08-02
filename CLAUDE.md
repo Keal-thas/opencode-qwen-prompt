@@ -108,23 +108,41 @@ items. This file is about *how* to work on it.
   exposes an **OpenAI-compatible API** — relevant when someone finally
   writes the real `provider` block into `opencode.json` there; opencode
   supports OpenAI-compatible providers natively.
-- **What's known about the restricted machine itself** (as of
-  2026-08-02, from the user, not yet independently verified): Windows,
-  accessed via git-bash, opencode also gets used through `web`/`serve`
-  modes there, not just the CLI (doesn't matter for this override — all
-  interfaces read the same `opencode.json`). Currently serving via
-  **Ollama**; someone else responsible for that machine has said a
-  future move to **vLLM** is planned — should be a non-issue since both
-  expose OpenAI-compatible endpoints, only `base_url`/model name would
-  need to change (vLLM uses served-model-name, not Ollama tags).
-  Model in use: user described it as "qwen3.6 35b, 应该是 a3b" — likely
-  the MoE `Qwen3-30B-A3B` family (A3B = ~3B active params) but the exact
-  name/quant wasn't confirmed, don't assume the literal string is
-  accurate. Hardware specs (GPU/VRAM) unknown. `$CONFIG_DIR` is the
-  opencode default (no override on that machine). Deployment will
-  happen by handing SETUP.md to the restricted machine's own opencode
-  to execute (matches SETUP.md's intended usage — written for an agent
-  to run, not a human to follow by hand).
+- **Two separate machines, not one — don't conflate them.** (1) The
+  restricted/offline machine: single-user (belongs to the user alone,
+  not shared), Windows, accessed via git-bash, no internet, opencode
+  installed there (also used through `web`/`serve` modes, not just the
+  CLI — doesn't matter for this override, all interfaces read the same
+  `opencode.json`). This is where SETUP.md gets executed. (2) A
+  *separate* model-serving machine/server running Ollama (with a
+  planned future move to vLLM by whoever administers that server) that
+  exposes an OpenAI-compatible API reachable over the restricted
+  machine's internal network — the user has **no admin access to this
+  server**, only consumes it as an API client from the restricted
+  machine's `opencode.json` provider config. So "someone else migrating
+  Ollama to vLLM" refers to that separate server's admin, not a second
+  person touching the restricted machine or its `opencode.json` — no
+  multi-user file-contention concern on the opencode side. Confirmed
+  2026-08-02.
+  Model in use: **`Qwen3.6-35B-A3B`** — real, released 2026-04-16,
+  Apache 2.0, sparse MoE (35B total params, ~3B active per forward
+  pass, ~12:1 sparsity). Native context 262,144 tokens, extensible to
+  1,010,000 via RoPE scaling — notably large, don't assume small-model
+  context constraints apply here. Has a "thinking preservation" feature
+  (retains reasoning traces across multi-turn) — worth checking whether
+  `opencode.json`'s model config sets the `reasoning`/`interleaved`
+  fields to actually take advantage of it. Benchmarks: 73.4%
+  SWE-bench Verified, 51.5% Terminal-Bench 2.0, 92.6% AIME 2026 (per
+  https://qwen.ai/blog?id=qwen3.6-35b-a3b and
+  https://huggingface.co/Qwen/Qwen3.6-35B-A3B — found via web search
+  since this postdates the 2026-01 knowledge cutoff; first guess of
+  "likely Qwen3-30B-A3B" was wrong, don't trust that old guess anywhere
+  it might still linger). Hardware specs (GPU/VRAM) of the model server
+  unknown. `$CONFIG_DIR` on the restricted machine is the opencode
+  default (no override). Deployment happens by handing SETUP.md to the
+  restricted machine's own opencode to execute (matches SETUP.md's
+  intended usage — written for an agent to run, not a human to follow
+  by hand).
 - **Known model quirk, not an opencode/repo issue**: user hit a "tool
   call not supported" error on one smaller Qwen model served via Ollama
   (referred to as "qwen2.7b" — exact model unconfirmed). Likely cause:
