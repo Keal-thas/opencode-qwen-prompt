@@ -49,10 +49,35 @@ back because they're safety/quality guardrails, not hand-holding:
 - Don't take actions beyond what was actually asked, even if it seems
   helpful
 
-Only `build` and `plan` agents should get this prompt (see
-`opencode.json.example`) — the other built-in agents (`compaction`,
-`summary`, `title`, `explore`, `general`) do narrow internal jobs and
-don't benefit from a "talk to an expert engineer" identity.
+A fourth line was put back for a different reason — not safety, but
+because dropping it silently disabled a whole mechanism: `default.txt`
+tells the model to delegate broad file search to the Task tool "in
+order to reduce context usage." The rewritten tone section had
+flattened that into plain "prefer grep/glob," which is direct-search
+advice, not a delegate-to-subagent instruction — so the model had no
+prompt-level reason to ever spawn a subagent. Put back (reworded) as:
+delegate broad/open-ended exploration to the Task tool.
+
+`build`, `plan`, and `general` agents should get this prompt (see
+`opencode.json.example`). `compaction`, `summary`, and `title` each
+ship their own narrow, task-specific native prompt (context
+summarization, PR-style session summary, title generation
+respectively) loaded from their own file in opencode's source
+(`packages/opencode/src/agent/prompt/*.txt` in
+[anomalyco/opencode](https://github.com/anomalyco/opencode), `dev`
+branch) — nothing to do with coding style, overriding those would
+actively hurt them. `explore` also has its own native prompt file
+(read-only "file search specialist" role) that's already well-suited
+to its job. `general`, however, has **no prompt field set at all** in
+that same source (`packages/opencode/src/agent/agent.ts`) — same as
+`build`/`plan` — confirmed against the actual upstream source, not
+just `opencode debug agent <name>` output on this machine. Like
+`build`/`plan` it has full bash/edit/write access and does real
+multi-step engineering work per its description, so left unconfigured
+it silently falls back to the full hand-holding `default.txt` — and,
+before the Task-tool line above was restored, would never even get
+invoked by the model in the first place. It gets the same override as
+`build`/`plan`.
 
 ## Status / open items
 

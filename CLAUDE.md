@@ -31,8 +31,28 @@ items. This file is about *how* to work on it.
   resume it and demand an actual answer plus confirmation that any
   cleanup it was supposed to do actually happened. Don't take a vague
   or non-committal subagent report at face value.
+- **When you can run the real binary, do that before reading source or
+  docs — but confirm surprising findings against source too.**
+  `opencode debug agent <name>` gave the resolved prompt for every
+  built-in agent directly (no need to trigger each one through a live
+  chat, and subagents like `explore`/`general` can't even be invoked
+  directly from the CLI — it silently falls back to `build`). Still
+  went and confirmed the `general` agent's missing prompt against
+  actual upstream source (below) once it looked like a real gap worth
+  acting on, rather than trusting the debug output alone.
 
 ## Where things live
+
+- opencode's real upstream repo is
+  [anomalyco/opencode](https://github.com/anomalyco/opencode) (`dev`
+  branch), npm package `opencode-ai`. Built-in agent definitions are in
+  `packages/opencode/src/agent/agent.ts`; the four agents with their
+  own dedicated native prompt (`explore`, `compaction`, `summary`,
+  `title`) load them from `packages/opencode/src/agent/prompt/*.txt` in
+  that repo. `build`, `plan`, and `general` have no prompt field set in
+  source at all — worth remembering if this needs re-checking after an
+  opencode upgrade, since version 1.14.30 (installed on this dev
+  machine) is what all of the above was verified against.
 
 - This repo used to be a subfolder of an unrelated Java project
   (`java-remote-debug-with-idea`) before being moved out — if you see

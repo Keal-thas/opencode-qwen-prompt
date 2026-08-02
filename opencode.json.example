@@ -6,6 +6,9 @@
     },
     "plan": {
       "prompt": "{file:./system-prompt.txt}"
+    },
+    "general": {
+      "prompt": "{file:./system-prompt.txt}"
     }
   }
 }

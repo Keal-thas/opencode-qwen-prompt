@@ -75,12 +75,16 @@ Check whether `$CONFIG_DIR/opencode.json` already exists.
     },
     "plan": {
       "prompt": "{file:./system-prompt.txt}"
+    },
+    "general": {
+      "prompt": "{file:./system-prompt.txt}"
     }
   }
   ```
 
   If an `"agent"` key already exists with other agents configured,
-  merge `build`/`plan` into it rather than replacing the whole key. Use
+  merge `build`/`plan`/`general` into it rather than replacing the whole
+  key. Use
   the Edit/Write capability you have to produce valid JSON — verify it
   parses (e.g. `python -c "import json,sys; json.load(open(sys.argv[1]))" "$CONFIG_DIR/opencode.json"` or equivalent) before moving on.
 
