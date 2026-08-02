@@ -5,6 +5,26 @@ items. This file is about *how* to work on it.
 
 ## Hard-won lessons from building this
 
+- **There is no single authoritative list of `OPENCODE_*` env vars —
+  not even in official docs.** `cli.mdx`'s `## Environment variables` +
+  `### Experimental` tables (checked 2026-08-02) are the closest thing
+  to a real reference, but cross-checking against actual source
+  (`packages/core/src/flag/flag.ts`) found mismatches both ways:
+  `OPENCODE_MODELS_PATH` — the var this repo's SETUP.md step 3 and
+  `models-dev-snapshot.json` depend on — is real and works but is
+  **completely absent from the docs table**; conversely the docs table
+  lists vars (`OPENCODE_AUTO_SHARE`, `OPENCODE_ENABLE_EXA`,
+  `OPENCODE_DISABLE_CLAUDE_CODE`, etc.) not present in that one source
+  file, meaning env vars get read from more than one place in the
+  codebase, not centralized in `flag.ts` alone. Don't trust either list
+  as exhaustive — when a specific var's existence/behavior actually
+  matters, grep the real source for it, the way `OPENCODE_MODELS_PATH`
+  and `OPENCODE_DISABLE_MODELS_FETCH` were originally confirmed.
+- **A local copy of opencode's own docs lives at
+  `opencode-docs-reference/`** (gitignored, not part of this repo's
+  content) — all 35 `.mdx` pages from
+  `packages/web/src/content/docs/` in upstream, fetched 2026-08-02 for
+  reference while working on this project. Re-fetch if it goes stale.
 - **Don't trust blog posts / third-party gists about opencode's
   internals — verify against the actual installed binary/config.**
   Got burned twice: a gist claimed a `qwen.txt` fallback prompt exists
