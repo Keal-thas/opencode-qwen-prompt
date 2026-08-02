@@ -56,7 +56,9 @@ Check whether `$CONFIG_DIR/opencode.json` already exists.
 
 - **If it does NOT exist yet**: copy the example as a starting point,
   then edit it to add your actual provider/model config (Ollama/vLLM)
-  on top — this repo doesn't know your provider setup.
+  on top — this repo doesn't know your exact provider setup, beyond
+  that the model server exposes an OpenAI-compatible API, which
+  opencode supports as a provider type natively.
 
   ```bash
   cp "$SRC_DIR/opencode.json.example" "$CONFIG_DIR/opencode.json"

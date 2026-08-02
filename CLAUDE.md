@@ -42,6 +42,31 @@ items. This file is about *how* to work on it.
   went and confirmed the `general` agent's missing prompt against
   actual upstream source (below) once it looked like a real gap worth
   acting on, rather than trusting the debug output alone.
+- **opencode enforces behavior via permissions, not prompt text — this
+  is why sharing one prompt across build/plan/general is safe.**
+  `plan`'s "can't edit files" restriction lives entirely in its
+  permission ruleset (`edit: deny`), not in any prompt wording — the
+  `provider()` function that picks a base system prompt
+  (`session/system.ts`) branches only on model ID, never on agent name
+  or mode. Confirmed by testing: overriding all three agents' prompt
+  with the same `system-prompt.txt` did not affect plan's edit
+  restriction, because that restriction was never prompt-encoded to
+  begin with. Don't assume the reverse holds elsewhere, though —
+  anything NOT enforced by a permission rule (tone, "when to delegate
+  to Task", etc.) only exists if the prompt says it.
+- **The Task tool's subagent result is fragile — worth knowing before
+  leaning on `general` for this Qwen setup.** `tool/task.ts` runs the
+  subagent to completion and returns `result.parts.findLast(p => p.type
+  === "text")?.text ?? ""` — only the subagent's last text block, no
+  concatenation of earlier text or tool output, and a silent `""` if
+  the subagent's final message has no text part at all (e.g. it ends on
+  a tool call). No error is raised either way. A subagent that does
+  real work via tools but closes with a thin or missing summary hands
+  the parent agent nothing useful, and there's no system-level warning
+  when that happens — this is a real risk for a smaller model that
+  doesn't reliably self-summarize, independent of whether the
+  delegation *prompt* line (above) gets the model to invoke `general`
+  in the first place.
 
 ## Where things live
 
@@ -54,7 +79,16 @@ items. This file is about *how* to work on it.
   that repo. `build`, `plan`, and `general` have no prompt field set in
   source at all — worth remembering if this needs re-checking after an
   opencode upgrade, since version 1.14.30 (installed on this dev
-  machine) is what all of the above was verified against.
+  machine) is what all of the above was verified against. Permission
+  logic is `packages/opencode/src/permission/index.ts`; the Task tool
+  (subagent invocation) is `packages/opencode/src/tool/task.ts` +
+  `task.txt`; base-prompt-by-model-ID selection is
+  `packages/opencode/src/session/system.ts`.
+- The actual target machine's model server (Ollama/vLLM, reachable only
+  from the restricted machine's own network, not from this dev machine)
+  exposes an **OpenAI-compatible API** — relevant when someone finally
+  writes the real `provider` block into `opencode.json` there; opencode
+  supports OpenAI-compatible providers natively.
 
 - This repo used to be a subfolder of an unrelated Java project
   (`java-remote-debug-with-idea`) before being moved out — if you see
