@@ -90,7 +90,45 @@ Check whether `$CONFIG_DIR/opencode.json` already exists.
   the Edit/Write capability you have to produce valid JSON — verify it
   parses (e.g. `python -c "import json,sys; json.load(open(sys.argv[1]))" "$CONFIG_DIR/opencode.json"` or equivalent) before moving on.
 
-## 3. (Optional but recommended) Install the viewer plugin
+## 3. (Optional) Point the models.dev catalog at a local file
+
+This machine has no internet access, so opencode's hourly background
+refresh of its models.dev metadata catalog can never succeed here —
+harmless on its own (non-blocking, fails silently), but writes a
+failed-fetch line to the log every hour forever. Not required for
+anything either way: this setup's Qwen provider is defined by hand in
+`opencode.json`, not looked up from that catalog. Two ways to handle
+it, both via environment variables set persistently on this machine
+(e.g. `~/.bashrc` if launched from git-bash, or a Windows user/system
+env var if launched another way) — a JSON config key does not exist
+for either, they're env-var only:
+
+- **Just silence it** (simplest, zero maintenance — relies on the
+  snapshot already baked into the offline build at compile time):
+
+  ```bash
+  OPENCODE_DISABLE_MODELS_FETCH=1
+  ```
+
+- **Or point it at an actual local copy** (this repo ships one at
+  `models-dev-snapshot.json`, captured from `opencode models --refresh`
+  on a machine with internet — refresh it there periodically and
+  re-transfer if you want current data). Copy it into place and set
+  both variables — `OPENCODE_MODELS_PATH` alone is not enough, the
+  background refresh loop checks the cache directory's file age, not
+  this path, so it would still attempt a network fetch every 60 minutes
+  unless `OPENCODE_DISABLE_MODELS_FETCH` is also set:
+
+  ```bash
+  cp "$SRC_DIR/models-dev-snapshot.json" "$CONFIG_DIR/models-dev-snapshot.json"
+  ```
+
+  ```bash
+  OPENCODE_MODELS_PATH="$CONFIG_DIR/models-dev-snapshot.json"
+  OPENCODE_DISABLE_MODELS_FETCH=1
+  ```
+
+## 4. (Optional but recommended) Install the viewer plugin
 
 This lets you actually see what gets sent to the model, which matters
 here because this is the first time this setup runs against the real
@@ -115,7 +153,7 @@ forward slashes and `file:///` prefix, e.g.
 `file:///C:/Users/<name>/.config/opencode/plugins/system-prompt-tools.js`) —
 don't guess it, derive it from `$CONFIG_DIR`.
 
-## 4. Verify
+## 5. Verify
 
 Run a trivial request against your actual local model:
 
@@ -123,7 +161,7 @@ Run a trivial request against your actual local model:
 opencode run --model <your-provider>/<your-qwen-model> "say hi in one word"
 ```
 
-If you installed the plugin in step 3, check what actually got sent:
+If you installed the plugin in step 4, check what actually got sent:
 
 ```bash
 cat ~/.local/share/opencode/last-system-prompt.txt
@@ -136,7 +174,7 @@ directory/platform/date. If it still looks like the original verbose
 default, the `agent.prompt` config wasn't picked up — check for a JSON
 syntax error in `opencode.json` first.
 
-## 5. Cleanup (optional)
+## 6. Cleanup (optional)
 
 `$SRC_DIR` (the extracted zip) and the original zip file itself can be
 deleted if you don't want them left on disk — they're not needed once
@@ -149,6 +187,6 @@ instead of assuming.
 ## Report back
 
 State plainly: did `opencode.json` already exist (was it merged or
-created fresh)? Did verification in step 4 confirm the custom prompt is
+created fresh)? Did verification in step 5 confirm the custom prompt is
 actually being sent? If not, what did the actual output look like
 instead?

@@ -8,7 +8,10 @@ to be handed directly to an agent (paste it as a task, or point a coding
 agent at this repo) and executed step by step, since the intended
 machine to run this on is a network-restricted box you'd rather not do
 this by hand on repeatedly. This file (README.md) is the human-readable
-explanation of what it does and why.
+explanation of what it does and why. [SETUP.zh.md](SETUP.zh.md) is a
+Chinese, human-facing walkthrough of the same SETUP.md steps — for
+whoever is watching over (or manually doing) the deployment on that
+machine, not meant to be executed literally.
 
 ## What's here
 
@@ -22,6 +25,12 @@ explanation of what it does and why.
   against opencode's own hosted `north-mini-code-free` model, kept as a
   reference for what the plugin's dump output looks like. Not your Qwen
   setup's actual prompt.
+- `models-dev-snapshot.json` — a local copy of opencode's models.dev
+  metadata catalog (from `opencode models --refresh` on a machine with
+  internet), for the fully-offline restricted machine to point
+  `OPENCODE_MODELS_PATH` at instead of ever trying to fetch it live.
+  See SETUP.md step 3. Optional — the offline build already has a
+  build-time snapshot baked in as a fallback either way.
 - `CLAUDE.md` — working notes for whoever (human or agent) edits this
   repo further.
 

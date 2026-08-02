@@ -89,7 +89,65 @@ items. This file is about *how* to work on it.
   exposes an **OpenAI-compatible API** — relevant when someone finally
   writes the real `provider` block into `opencode.json` there; opencode
   supports OpenAI-compatible providers natively.
+- **What's known about the restricted machine itself** (as of
+  2026-08-02, from the user, not yet independently verified): Windows,
+  accessed via git-bash, opencode also gets used through `web`/`serve`
+  modes there, not just the CLI (doesn't matter for this override — all
+  interfaces read the same `opencode.json`). Currently serving via
+  **Ollama**; someone else responsible for that machine has said a
+  future move to **vLLM** is planned — should be a non-issue since both
+  expose OpenAI-compatible endpoints, only `base_url`/model name would
+  need to change (vLLM uses served-model-name, not Ollama tags).
+  Model in use: user described it as "qwen3.6 35b, 应该是 a3b" — likely
+  the MoE `Qwen3-30B-A3B` family (A3B = ~3B active params) but the exact
+  name/quant wasn't confirmed, don't assume the literal string is
+  accurate. Hardware specs (GPU/VRAM) unknown. `$CONFIG_DIR` is the
+  opencode default (no override on that machine). Deployment will
+  happen by handing SETUP.md to the restricted machine's own opencode
+  to execute (matches SETUP.md's intended usage — written for an agent
+  to run, not a human to follow by hand).
+- **Known model quirk, not an opencode/repo issue**: user hit a "tool
+  call not supported" error on one smaller Qwen model served via Ollama
+  (referred to as "qwen2.7b" — exact model unconfirmed). Likely cause:
+  Ollama tool-calling depends on that model's Modelfile chat template
+  including a tools branch (e.g. `{{ if .Tools }}`) — not every Qwen
+  tag in the Ollama library has one, and small models may not be
+  function-calling-tuned at all. Not something this repo's system
+  prompt override can fix; if it recurs after the vLLM migration, check
+  vLLM's `--tool-call-parser` flag instead.
 
+- **The models.dev catalog fetch does NOT block startup on a fully
+  offline machine — verified directly from source, not assumed**
+  (`packages/core/src/models-dev.ts` +
+  `packages/opencode/script/build.ts` in upstream, checked 2026-08-02).
+  On boot it first tries `$CACHE_DIR/models.json` (any age, no
+  staleness check); if that's missing it falls back to a snapshot
+  baked into the binary at build time via esbuild
+  `define: { OPENCODE_MODELS_DEV: generated.modelsData }` — the
+  offline single-exe build embeds this, so a brand-new install with
+  zero cache and zero network still resolves synchronously, no fetch
+  attempted. The only real network call is a background refresh every
+  60 minutes, forked (non-blocking) with failures caught and ignored
+  (`Effect.ignore`) — can't hang or crash startup, worst case is an
+  hourly failed-fetch line in the log forever on a machine that can
+  never reach the internet. Also irrelevant to our setup either way:
+  the target machine's Qwen provider is fully custom
+  OpenAI-compatible, defined by hand in `opencode.json`, not looked up
+  from this catalog. To kill the pointless hourly retry noise, set env
+  var `OPENCODE_DISABLE_MODELS_FETCH=1` on that machine (skips fetch
+  entirely, cache/snapshot-only). To point at an actual local file
+  instead of relying on the stale build-time snapshot, set
+  `OPENCODE_MODELS_PATH=<path>` too — but **both** variables are needed
+  for a true zero-network guarantee: `OPENCODE_MODELS_PATH` only
+  affects the initial `populate()` load (`loadFromDisk` reads that path
+  instead of `$CACHE_DIR/models.json`); the background 60-minute
+  refresh loop is gated purely by `OPENCODE_DISABLE_MODELS_FETCH` and
+  checks `$CACHE_DIR/models.json`'s mtime regardless of
+  `OPENCODE_MODELS_PATH`, so without the disable flag it still attempts
+  a doomed network fetch every hour even with a local path configured.
+  This repo ships `models-dev-snapshot.json` (a captured
+  `opencode models --refresh` output) for this exact purpose — see
+  SETUP.md step 3.
 - This repo used to be a subfolder of an unrelated Java project
   (`java-remote-debug-with-idea`) before being moved out — if you see
   references to that path in old commit messages, that's why.
