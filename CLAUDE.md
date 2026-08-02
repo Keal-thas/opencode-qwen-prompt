@@ -36,7 +36,9 @@ items. This file is about *how* to work on it.
   `opencode debug agent <name>` gave the resolved prompt for every
   built-in agent directly (no need to trigger each one through a live
   chat, and subagents like `explore`/`general` can't even be invoked
-  directly from the CLI — it silently falls back to `build`). Still
+  directly from the CLI — `opencode run --agent explore ...` prints an
+  explicit warning and falls back to `build` rather than doing it
+  silently). Still
   went and confirmed the `general` agent's missing prompt against
   actual upstream source (below) once it looked like a real gap worth
   acting on, rather than trusting the debug output alone.
