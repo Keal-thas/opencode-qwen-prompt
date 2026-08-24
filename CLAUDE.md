@@ -123,8 +123,8 @@ items. This file is about *how* to work on it.
   (subagent invocation) is `packages/opencode/src/tool/task.ts` +
   `task.txt`; base-prompt-by-model-ID selection is
   `packages/opencode/src/session/system.ts`.
-- The actual target machine's model server (Ollama/vLLM, reachable only
-  from the restricted machine's own network, not from this dev machine)
+- The actual target machine's model server (vLLM, reachable only from
+  the restricted machine's own network, not from this dev machine)
   exposes an **OpenAI-compatible API** — relevant when someone finally
   writes the real `provider` block into `opencode.json` there; opencode
   supports OpenAI-compatible providers natively.
@@ -134,16 +134,14 @@ items. This file is about *how* to work on it.
   installed there (also used through `web`/`serve` modes, not just the
   CLI — doesn't matter for this override, all interfaces read the same
   `opencode.json`). This is where SETUP.md gets executed. (2) A
-  *separate* model-serving machine/server running Ollama (with a
-  planned future move to vLLM by whoever administers that server) that
-  exposes an OpenAI-compatible API reachable over the restricted
-  machine's internal network — the user has **no admin access to this
-  server**, only consumes it as an API client from the restricted
-  machine's `opencode.json` provider config. So "someone else migrating
-  Ollama to vLLM" refers to that separate server's admin, not a second
-  person touching the restricted machine or its `opencode.json` — no
-  multi-user file-contention concern on the opencode side. Confirmed
-  2026-08-02.
+  *separate* model-serving machine/server running vLLM that exposes an
+  OpenAI-compatible API reachable over the restricted machine's
+  internal network — the user has **no admin access to this server**,
+  only consumes it as an API client from the restricted machine's
+  `opencode.json` provider config. So any changes to that server are
+  its admin's business, not a second person touching the restricted
+  machine or its `opencode.json` — no multi-user file-contention
+  concern on the opencode side. Confirmed 2026-08-02.
   Model in use: **`Qwen3.6-35B-A3B`** — real, released 2026-04-16,
   Apache 2.0, sparse MoE (35B total params, ~3B active per forward
   pass, ~12:1 sparsity). Native context 262,144 tokens, extensible to
@@ -163,21 +161,11 @@ items. This file is about *how* to work on it.
   restricted machine's own opencode to execute (matches SETUP.md's
   intended usage — written for an agent to run, not a human to follow
   by hand).
-- **Known model quirk, not an opencode/repo issue — better explanation
-  found 2026-08-02, correcting an earlier guess**: user hit a "tool
-  call not supported" error on one smaller Qwen model served via Ollama
-  (referred to as "qwen2.7b" — exact model unconfirmed). Originally
-  guessed this was a missing tools-branch in the model's Ollama
-  Modelfile chat template. opencode's own `providers.mdx` docs give a
-  more likely, more actionable cause: "If tool calls aren't working,
-  try increasing `num_ctx` in Ollama. Start around 16k - 32k." — Ollama
-  defaults `num_ctx` low (historically 2048), which can silently
-  truncate the tool-call schema/instructions out of the prompt entirely
-  before the model ever sees them, producing exactly this symptom.
-  Check `num_ctx` first; the chat-template theory is still possible but
-  now the second thing to check, not the first. Not something this
-  repo's system prompt override can fix either way; if it recurs after
-  the vLLM migration, check vLLM's `--tool-call-parser` flag instead.
+- **Known model quirk, not an opencode/repo issue**: user hit a "tool
+  call not supported" error on one smaller Qwen model (referred to as
+  "qwen2.7b" — exact model unconfirmed). Not something this repo's
+  system prompt override can fix; if it recurs, check vLLM's
+  `--tool-call-parser` flag on the model server.
 
 - **The models.dev catalog fetch does NOT block startup on a fully
   offline machine — verified directly from source, not assumed**

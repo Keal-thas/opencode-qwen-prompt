@@ -55,7 +55,7 @@ cp "$SRC_DIR/system-prompt.txt" "$CONFIG_DIR/system-prompt.txt"
 Check whether `$CONFIG_DIR/opencode.json` already exists.
 
 - **If it does NOT exist yet**: copy the example as a starting point,
-  then edit it to add your actual provider/model config (Ollama/vLLM)
+  then edit it to add your actual provider/model config (vLLM)
   on top — this repo doesn't know your exact provider setup, beyond
   that the model server exposes an OpenAI-compatible API, which
   opencode supports as a provider type natively.
@@ -64,7 +64,7 @@ Check whether `$CONFIG_DIR/opencode.json` already exists.
   cp "$SRC_DIR/opencode.json.example" "$CONFIG_DIR/opencode.json"
   ```
 
-- **If it already exists** (most likely — your Ollama/vLLM provider is
+- **If it already exists** (most likely — your vLLM provider is
   probably already configured there): read it, then add this exact key
   to the top-level JSON object, merging with whatever is already there.
   Do not remove or alter any existing keys (provider config,
