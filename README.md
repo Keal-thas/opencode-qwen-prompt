@@ -93,9 +93,9 @@ invoked by the model in the first place. It gets the same override as
 
 ## Status / open items
 
-- Never tested against the actual Ollama/vLLM + Qwen setup — only
-  validated against opencode's own hosted free models on a separate dev
-  machine. Run the viewer plugin once against the real setup before
+- Never tested against the actual vLLM + Qwen setup — only validated
+  against opencode's own hosted free models on a separate dev machine.
+  Run the viewer plugin once against the real setup before
   trusting that it also falls back to `default.txt`.
 - The target restricted machine runs opencode as an offline single-exe
   build with git-bash available, but has no internet access at all —

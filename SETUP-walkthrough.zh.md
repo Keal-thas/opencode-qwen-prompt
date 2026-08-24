@@ -13,7 +13,7 @@ SETUP.md 是写给**受限机器上的 opencode 自己执行**的(那台机器�
   (类似 U 盘传输,不管中间用的是真 U 盘还是沙箱 app 的"拖拽导出",
   效果一样).
 - 目标:让本地 opencode 用仓库里的 `system-prompt.txt` 替换掉它内置的
-  啰嗦新手向 prompt,同时不破坏这台机器已经配好的 Ollama/vLLM provider
+  啰嗦新手向 prompt,同时不破坏这台机器已经配好的 vLLM provider
   配置.
 
 ## 第 0 步:确认配置目录 + 找到解压后的源码
@@ -37,7 +37,7 @@ SETUP.md 是写给**受限机器上的 opencode 自己执行**的(那台机器�
 这是最关键,也最容易出错的一步.核心逻辑:
 
 - 如果这台机器上**还没有** `opencode.json`:先拿仓库里的
-  `opencode.json.example` 当起点,但里面**没有**真正的 Ollama/vLLM
+  `opencode.json.example` 当起点,但里面**没有**真正的 vLLM
   provider 配置——那部分要靠这台机器的负责人自己补上去,这个仓库不知道
   真实的模型服务地址.
 - 如果**已经有** `opencode.json`(大概率如此,provider 配置应该早就配好
@@ -65,7 +65,7 @@ provider 支持哪些模型,上下文长度,价格等信息.这台机器完全�
 不是写在 `opencode.json` 里的东西):
 
 1. 图省事:设 `OPENCODE_DISABLE_MODELS_FETCH=1`,直接不让它联网,
-   靠编译时打包的旧数据过日子.反正咱们用的是自定义 Ollama/vLLM
+   靠编译时打包的旧数据过日子.反正咱们用的是自定义 vLLM
    provider,这份目录数据本来也用不上.
 2. 想要相对新一点的数据:仓库里带了一份
    `models-dev-snapshot.json`(是在能上网的机器上跑
