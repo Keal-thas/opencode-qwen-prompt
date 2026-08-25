@@ -1,0 +1,33 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (full history, including .git)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build zip with .git included
+        run: |
+          repo="${GITHUB_REPOSITORY##*/}"
+          tag="${GITHUB_REF_NAME}"
+          out="${repo}-${tag}-with-git.zip"
+          zip -r "$out" . -x "$out"
+          echo "ASSET_PATH=$out" >> "$GITHUB_ENV"
+          echo "ASSET_NAME=$out" >> "$GITHUB_ENV"
+
+      - name: Create release and upload asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.ASSET_PATH }}
+          generate_release_notes: true
