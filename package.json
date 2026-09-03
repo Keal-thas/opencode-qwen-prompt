@@ -1,0 +1,9 @@
+{
+  "name": "opencode-hook-plugins",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "description": "hook-logger + llm-review-gate opencode plugins, packed and installed locally via a file: npm spec (no registry, no server - see CLAUDE.md)",
+  "main": "index.js",
+  "files": ["index.js", "hook-logger.js", "llm-review-gate.js"]
+}
