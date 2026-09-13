@@ -2,7 +2,8 @@
 # Meant to run *inside* the docker/ dev sandbox (see tests/README.md) -
 # not against whatever node/bash happens to be on the host. Covers
 # everything that needs no live opencode/model server: the plugin unit
-# tests, the analyze-modules.sh integration test (stubbed opencode), and
+# tests, the analyze-modules.mjs integration test (real opencode server,
+# fake model provider), and
 # the oracle MCP server test (needs a real Oracle instance - guaranteed
 # reachable here because opencode-dev's docker-compose depends_on brings
 # the sibling `oracle` service up and waits for it before this container
@@ -20,8 +21,11 @@ echo "== unit tests (node --test) =="
 node --test tests/unit/*.test.mjs
 
 echo
-echo "== analyze-modules.sh integration test =="
-bash tests/integration/analyze-modules.test.sh
+echo "== analyze-modules.mjs integration test =="
+# module-analysis/ is its own npm package (see its package.json) - install
+# @opencode-ai/sdk before driving it, same as mcp/oracle below.
+(cd module-analysis && npm install --no-audit --no-fund)
+node tests/integration/analyze-modules.test.mjs
 
 echo
 echo "== oracle MCP server integration test (real Oracle instance) =="
