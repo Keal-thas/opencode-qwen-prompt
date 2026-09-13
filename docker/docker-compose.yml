@@ -47,11 +47,16 @@ services:
     command: bash
 
   # Optional - for exercising mcp/oracle/ against a real Oracle instance.
-  # Not started by `docker compose up`/`run opencode-dev` on its own;
-  # bring it up explicitly with `docker compose up -d oracle` (see
-  # docker-notes.md). Reachable from opencode-dev as `oracle:1521/FREEPDB1`
-  # via Compose's default service DNS, no extra network config needed.
+  # The `profiles` key is what actually keeps this out of a bare `docker
+  # compose up -d` (verified: without it, that command starts this
+  # alongside opencode-dev, since compose starts every service with no
+  # profile by default - a profile-less service is NOT "opt-in" on its
+  # own). Naming it explicitly still works despite the profile - `docker
+  # compose up -d oracle` (see docker-notes.md) starts just this one.
+  # Reachable from opencode-dev as `oracle:1521/FREEPDB1` via Compose's
+  # default service DNS, no extra network config needed.
   oracle:
+    profiles: ["oracle"]
     image: gvenzl/oracle-free:${ORACLE_FREE_VERSION:?set ORACLE_FREE_VERSION in .env}
     container_name: opencode-qwen-prompt-oracle-test
     environment:

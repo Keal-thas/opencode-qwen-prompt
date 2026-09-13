@@ -122,13 +122,13 @@ release first), then `docker compose -f docker/docker-compose.yml build`.
 
 A second service in `docker-compose.yml`, `oracle` (image `gvenzl/oracle-free`, version pinned via `ORACLE_FREE_VERSION` in `docker/.env` next to `OPENCODE_VERSION` - same reasoning, same file), gives `mcp/oracle/` a real Oracle instance to run against instead of only being tested via a manually-launched throwaway container each time (which is how it was first verified, 2026-09-13 - see `docs/feature-points/13-oracle-mcp-server.md`).
 
-Not started by `docker compose up`/`run opencode-dev` on their own - it's opt-in:
+It carries `profiles: ["oracle"]`, which is what actually makes it opt-in - verified experimentally (2026-09-13) that without a profile, a bare `docker compose up -d` (the long-lived-container flow above) starts it right alongside `opencode-dev`, since compose starts every profile-less service by default. Naming it explicitly still works despite the profile:
 
 ```sh
 docker compose -f docker/docker-compose.yml up -d oracle
 ```
 
-First startup takes 1-3 minutes (creating the `FREE` database and its `FREEPDB1` pluggable DB from scratch); `docker compose ... ps` or `docker inspect --format='{{.State.Health.Status}}' opencode-qwen-prompt-oracle-test` shows `healthy` once it's ready. That init only happens once - the `oracle-data` named volume persists it across `docker compose down`/container recreation the same way `opencode-config`/`opencode-data` do (see "What actually persists" above), so a later `up -d oracle` on the same volume comes up in seconds.
+First startup takes 1-3 minutes (creating the `FREE` database and its `FREEPDB1` pluggable DB from scratch); `docker compose ... ps` or `docker inspect --format='{{.State.Health.Status}}' opencode-qwen-prompt-oracle-test` shows `healthy` once it's ready. That init only happens once - the `oracle-data` named volume persists it across `docker compose down`/container recreation the same way `opencode-config`/`opencode-data` do (see "What actually persists" above). Measured (2026-09-13): a later `up -d oracle` on the same volume was already `healthy` within a few seconds, not minutes.
 
 From inside `opencode-dev`, it's reachable as `oracle:1521/FREEPDB1` via Compose's default service DNS - no extra network config, both services land on the same `opencode-qwen-prompt_default` network automatically. Credentials (`ORACLE_APP_USER` / `ORACLE_APP_USER_PASSWORD` in `docker/.env`) are throwaway sandbox fixtures, not real secrets, same as `OPENCODE_VERSION` being a plain committed value - never exposed outside this docker network.
 
