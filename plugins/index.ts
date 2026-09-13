@@ -1,2 +1,2 @@
-export { HookLogger } from "./hook-logger.js";
-export { LlmReviewGate } from "./llm-review-gate.js";
+export { HookLogger } from "./hook-logger.ts";
+export { LlmReviewGate } from "./llm-review-gate.ts";
