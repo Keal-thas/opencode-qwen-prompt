@@ -21,10 +21,12 @@ items. This file is about *how* to work on it.
   matters, grep the real source for it, the way `OPENCODE_MODELS_PATH`
   and `OPENCODE_DISABLE_MODELS_FETCH` were originally confirmed.
 - **A local copy of opencode's own docs lives at
-  `opencode-docs-reference/`** (gitignored, not part of this repo's
-  content) — all 35 `.mdx` pages from
-  `packages/web/src/content/docs/` in upstream, fetched 2026-08-02 for
-  reference while working on this project. Re-fetch if it goes stale.
+  `docs/opencode-docs-reference/`** — committed (not gitignored,
+  2026-09-13 onward), since the actual target machine has no internet
+  and this travels with the repo. All 36 top-level English `.mdx`
+  pages from `packages/web/src/content/docs/` in upstream (locale
+  subdirectories skipped on purpose). Refresh with
+  `./docs/fetch-opencode-docs.sh`.
 - **Don't trust blog posts / third-party gists about opencode's
   internals — verify against the actual installed binary/config.**
   Got burned twice: a gist claimed a `qwen.txt` fallback prompt exists
@@ -121,7 +123,8 @@ items. This file is about *how* to work on it.
   section for why `.env` is committed and not secret). `plugins/` is
   the separate `opencode-hook-plugins` npm package (hook-logger +
   llm-review-gate), unrelated to the prompt override. `docs/` is misc
-  research notes. `module-analysis/` is its own standalone toolkit,
+  research notes plus `opencode-docs-reference/` (see above).
+  `module-analysis/` is its own standalone toolkit,
   unchanged by the reorg. `.dockerignore` stays at the repo root
   (Docker looks for it at the build context root, and the context is
   the repo root even though the Dockerfile lives in `docker/`).
@@ -160,21 +163,17 @@ items. This file is about *how* to work on it.
   its admin's business, not a second person touching the restricted
   machine or its `opencode.json` — no multi-user file-contention
   concern on the opencode side. Confirmed 2026-08-02.
-  Model in use: **`Qwen3.6-35B-A3B`** — real, released 2026-04-16,
-  Apache 2.0, sparse MoE (35B total params, ~3B active per forward
-  pass, ~12:1 sparsity). Native context 262,144 tokens, extensible to
-  1,010,000 via RoPE scaling — notably large, don't assume small-model
-  context constraints apply here. Has a "thinking preservation" feature
+  Model in use: **`Qwen3.6-35B-A3B`** (real, released 2026-04-16,
+  Apache 2.0, sparse MoE — confirmed via web search, postdates the
+  2026-01 knowledge cutoff, don't rely on training-data recall for this
+  model). Native context 262,144 tokens, extensible to 1,010,000 via
+  RoPE scaling — notably large, don't assume small-model context
+  constraints apply here. Has a "thinking preservation" feature
   (retains reasoning traces across multi-turn) — worth checking whether
   `opencode.json`'s model config sets the `reasoning`/`interleaved`
-  fields to actually take advantage of it. Benchmarks: 73.4%
-  SWE-bench Verified, 51.5% Terminal-Bench 2.0, 92.6% AIME 2026 (per
-  https://qwen.ai/blog?id=qwen3.6-35b-a3b and
-  https://huggingface.co/Qwen/Qwen3.6-35B-A3B — found via web search
-  since this postdates the 2026-01 knowledge cutoff; first guess of
-  "likely Qwen3-30B-A3B" was wrong, don't trust that old guess anywhere
-  it might still linger). Hardware specs (GPU/VRAM) of the model server
-  unknown. `$CONFIG_DIR` on the restricted machine is the opencode
+  fields to actually take advantage of it. Hardware specs (GPU/VRAM) of
+  the model server unknown. `$CONFIG_DIR` on the restricted machine is
+  the opencode
   default (no override). Deployment happens by handing SETUP.md to the
   restricted machine's own opencode to execute (matches SETUP.md's
   intended usage — written for an agent to run, not a human to follow
@@ -217,10 +216,10 @@ items. This file is about *how* to work on it.
   This repo ships `deploy/models-dev-snapshot.json` (a captured
   `opencode models --refresh` output) for this exact purpose — see
   SETUP.md step 3.
-- This repo used to be a subfolder of an unrelated Java project
-  (`java-remote-debug-with-idea`) before being moved out — if you see
-  references to that path in old commit messages, that's why.
-- Claude's own cross-session memory about this project (for when a
-  session starts elsewhere and this repo comes up) is a short pointer
-  at `~/.claude/projects/C--Users-DecVens-Desktop-codes-opencode-qwen-prompt/memory/`
-  — kept intentionally thin since the real content lives here now.
+- Claude's own cross-session memory about this project lives at
+  `~/.claude/projects/<encoded-cwd>/memory/` — the encoded-path segment
+  is specific to the machine and user account the session runs under,
+  so it will differ from machine to machine (this note previously
+  pointed at a stale path from a different computer entirely — don't
+  assume a memory path recorded here still resolves on whatever machine
+  you're reading this from; check `MEMORY.md` in that directory).
