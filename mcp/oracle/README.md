@@ -27,6 +27,17 @@ npm start
 
 Listens on stdio for MCP protocol messages.
 
+## Testing against a real Oracle instance
+
+`docker/docker-compose.yml` has an opt-in `oracle` service (`gvenzl/oracle-free`, see `docker/docker-notes.md`'s "Oracle test instance" section) for exactly this. From the repo root:
+
+```sh
+docker compose -f docker/docker-compose.yml up -d oracle   # first run: 1-3 min to initialize
+docker compose -f docker/docker-compose.yml run --rm opencode-dev bash
+```
+
+Then, inside that shell, `cd mcp/oracle && npm install` and point `ORACLE_CONNECT_STRING` at `oracle:1521/FREEPDB1` with the `ORACLE_APP_USER`/`ORACLE_APP_USER_PASSWORD` values from `docker/.env`.
+
 ## Status
 
-Verified end-to-end against a real Oracle instance (`gvenzl/oracle-free:slim`, run throwaway in the `docker/` sandbox network) via a real MCP client round-trip: `SELECT ... FROM dual`, `CREATE TABLE`, `INSERT`, then a fresh request's `SELECT *` confirming the insert actually persisted (proving `autoCommit: true` survives the per-request connection closing), `DROP TABLE`, and a query against a nonexistent table to check the error path (`ORA-00942` surfaced cleanly as `{success: false, error}`, not a crash). Not yet wired into `deploy/opencode.json.example`, and not yet added to `tests/` as an automated test - the verification above was manual. The `auditQuery()` hook is an intentional no-op until a rule-based or LLM-based check is designed for it.
+Verified end-to-end against the sandbox's `oracle` service via a real MCP client round-trip: `SELECT ... FROM dual`, `CREATE TABLE`, `INSERT`, then a fresh request's `SELECT *` confirming the insert actually persisted (proving `autoCommit: true` survives the per-request connection closing), `DROP TABLE`, and a query against a nonexistent table to check the error path (`ORA-00942` surfaced cleanly as `{success: false, error}`, not a crash). Not yet wired into `deploy/opencode.json.example`, and not yet added to `tests/` as an automated test - the verification above was manual. The `auditQuery()` hook is an intentional no-op until a rule-based or LLM-based check is designed for it.

@@ -46,6 +46,32 @@ services:
     tty: true
     command: bash
 
+  # Optional - for exercising mcp/oracle/ against a real Oracle instance.
+  # Not started by `docker compose up`/`run opencode-dev` on its own;
+  # bring it up explicitly with `docker compose up -d oracle` (see
+  # docker-notes.md). Reachable from opencode-dev as `oracle:1521/FREEPDB1`
+  # via Compose's default service DNS, no extra network config needed.
+  oracle:
+    image: gvenzl/oracle-free:${ORACLE_FREE_VERSION:?set ORACLE_FREE_VERSION in .env}
+    container_name: opencode-qwen-prompt-oracle-test
+    environment:
+      - ORACLE_PASSWORD=${ORACLE_SYS_PASSWORD:?set ORACLE_SYS_PASSWORD in .env}
+      - APP_USER=${ORACLE_APP_USER:?set ORACLE_APP_USER in .env}
+      - APP_USER_PASSWORD=${ORACLE_APP_USER_PASSWORD:?set ORACLE_APP_USER_PASSWORD in .env}
+    volumes:
+      # First-time init (creating the FREE database + FREEPDB1 pluggable
+      # DB) takes 1-3 minutes - this volume means that only happens once,
+      # not on every `docker compose up`, matching the opencode-config/
+      # opencode-data reasoning above.
+      - oracle-data:/opt/oracle/oradata
+    healthcheck:
+      test: ["CMD", "healthcheck.sh"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
 volumes:
   opencode-config:
   opencode-data:
+  oracle-data:

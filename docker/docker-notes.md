@@ -118,6 +118,22 @@ silently picking up a newer opencode. Bump it by editing that one line
 in `docker/.env` (check `npm view opencode-ai version` for the current
 release first), then `docker compose -f docker/docker-compose.yml build`.
 
+## Oracle test instance, for exercising mcp/oracle/
+
+A second service in `docker-compose.yml`, `oracle` (image `gvenzl/oracle-free`, version pinned via `ORACLE_FREE_VERSION` in `docker/.env` next to `OPENCODE_VERSION` - same reasoning, same file), gives `mcp/oracle/` a real Oracle instance to run against instead of only being tested via a manually-launched throwaway container each time (which is how it was first verified, 2026-09-13 - see `docs/feature-points/13-oracle-mcp-server.md`).
+
+Not started by `docker compose up`/`run opencode-dev` on their own - it's opt-in:
+
+```sh
+docker compose -f docker/docker-compose.yml up -d oracle
+```
+
+First startup takes 1-3 minutes (creating the `FREE` database and its `FREEPDB1` pluggable DB from scratch); `docker compose ... ps` or `docker inspect --format='{{.State.Health.Status}}' opencode-qwen-prompt-oracle-test` shows `healthy` once it's ready. That init only happens once - the `oracle-data` named volume persists it across `docker compose down`/container recreation the same way `opencode-config`/`opencode-data` do (see "What actually persists" above), so a later `up -d oracle` on the same volume comes up in seconds.
+
+From inside `opencode-dev`, it's reachable as `oracle:1521/FREEPDB1` via Compose's default service DNS - no extra network config, both services land on the same `opencode-qwen-prompt_default` network automatically. Credentials (`ORACLE_APP_USER` / `ORACLE_APP_USER_PASSWORD` in `docker/.env`) are throwaway sandbox fixtures, not real secrets, same as `OPENCODE_VERSION` being a plain committed value - never exposed outside this docker network.
+
+Stop it when done (`docker compose stop oracle && docker compose rm -f oracle`, or just `docker compose down` for everything) - it isn't needed for the day-to-day prompt-override/plugin work this sandbox otherwise exists for, and an idle Oracle instance isn't free.
+
 ## Verifying the system-prompt override actually works
 
 **Status: user-confirmed working, 2026-09-13.** Automated as of 2026-09-13 in `../tests/integration/docker-prompt-override.test.sh` (run via `../tests/run-all.sh`) — it launches its own disposable container from this image and scripts the exact `opencode debug config` check below, rather than needing a human to re-paste it by hand each time.
