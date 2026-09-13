@@ -70,7 +70,7 @@ config — no plugin required for the override itself.
 - `system-prompt.txt` — the actual replacement prompt content, edit to
   taste.
 - `opencode.json.example` — the config that wires `system-prompt.txt` in.
-- `system-prompt-tools.js` — optional plugin, dumps the fully-assembled
+- `system-prompt-tools.ts` — optional plugin, dumps the fully-assembled
   system prompt to a local file on every request. Diagnostic only, not
   required for the override to work.
 - `captured-example-prompt.txt` — a real capture from a test run

@@ -136,7 +136,7 @@ Qwen model — you have no other way to check it worked.
 
 ```bash
 mkdir -p "$CONFIG_DIR/plugins"
-cp "$SRC_DIR/deploy/system-prompt-tools.js" "$CONFIG_DIR/plugins/system-prompt-tools.js"
+cp "$SRC_DIR/deploy/system-prompt-tools.ts" "$CONFIG_DIR/plugins/system-prompt-tools.ts"
 ```
 
 Add to `opencode.json`'s top level (merge, don't replace, same rule as
@@ -144,13 +144,13 @@ step 2):
 
 ```json
 "plugin": [
-  "file:///<absolute path to>/plugins/system-prompt-tools.js"
+  "file:///<absolute path to>/plugins/system-prompt-tools.ts"
 ]
 ```
 
 Use the real absolute path on this machine (Windows path with
 forward slashes and `file:///` prefix, e.g.
-`file:///C:/Users/<name>/.config/opencode/plugins/system-prompt-tools.js`) —
+`file:///C:/Users/<name>/.config/opencode/plugins/system-prompt-tools.ts`) —
 don't guess it, derive it from `$CONFIG_DIR`.
 
 ## 5. (Optional, not fully supported yet) Add the Oracle MCP server
@@ -212,7 +212,7 @@ syntax error in `opencode.json` first.
 
 `$SRC_DIR` (the extracted zip) and the original zip file itself can be
 deleted if you don't want them left on disk — they're not needed once
-`$CONFIG_DIR/system-prompt.txt`, `$CONFIG_DIR/plugins/system-prompt-tools.js`
+`$CONFIG_DIR/system-prompt.txt`, `$CONFIG_DIR/plugins/system-prompt-tools.ts`
 (if installed), and `$CONFIG_DIR/mcp/oracle/` (if installed) are in
 place; those are the only files that actually matter going forward.
 Ask the human running this before deleting anything they might want to

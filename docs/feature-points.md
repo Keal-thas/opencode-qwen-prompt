@@ -3,7 +3,7 @@
 A feature-by-feature inventory of this workspace. Index only — details in `feature-points/`. Test coverage notes reference `tests/` (see `tests/README.md` for the canonical, test-focused breakdown). Update this when a feature point is added, removed, or its test coverage changes.
 
 1. [Qwen system-prompt override](feature-points/01-qwen-prompt-override.md) — replaces opencode's default prompt for build/plan/general. **Tested.**
-2. [system-prompt-tools.js plugin](feature-points/02-system-prompt-tools-plugin.md) — dumps the assembled prompt for inspection. **Tested.**
+2. [system-prompt-tools.ts plugin](feature-points/02-system-prompt-tools-plugin.md) — dumps the assembled prompt for inspection. **Tested.**
 3. [hook-logger.ts plugin](feature-points/03-hook-logger-plugin.md) — logs every opencode hook event as JSONL. **Tested.**
 4. [llm-review-gate.ts plugin](feature-points/04-llm-review-gate-plugin.md) — LLM safety review gating `bash` calls. **Tested.**
 5. [Docker dev/test sandbox](feature-points/05-docker-sandbox.md) — isolated container for exercising opencode. **Is the test environment.**
