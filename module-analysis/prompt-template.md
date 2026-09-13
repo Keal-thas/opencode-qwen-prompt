@@ -5,8 +5,10 @@ over a large single-module monolith (many `Controller`/`Service`/etc.
 subdirectories) to build up an architecture map for someone unfamiliar
 with the system.
 
-Placeholders: `{{MODULE_PATH}}`, `{{MODULE_NAME}}`, `{{OUT_FILE}}` —
-substituted by the calling script.
+Placeholder: `{{MODULE_PATH}}` — substituted by the calling script.
+`analyze-modules.sh` now names the output file itself and saves the
+agent's reply there directly, so the prompt no longer needs an output
+path — see that script for why.
 
 ## Design notes
 
@@ -43,7 +45,7 @@ over into a made-up explanation.
 5. 代码质量/存疑点：只列有具体证据支撑的问题（比如"这个 if 分支和第40行的分支条件重复，可能是历史遗留"），不要泛泛而谈"代码质量差"。
 
 ## 输出格式
-Markdown，保存到 {{OUT_FILE}}：
+直接在你的最终回复中输出以下 Markdown 内容（不要自己写文件，脚本会自动保存你的回复）：
 
 ## 模块概述
 （2-3句话，基于步骤1-2的证据）

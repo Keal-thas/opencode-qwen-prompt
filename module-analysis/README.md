@@ -18,10 +18,13 @@ this repo's SETUP.md configures).
   specifically to stop the model from fabricating explanations for
   code whose intent isn't actually recoverable — see that file for
   why this matters more than output formatting).
-- `analyze-modules.sh` — the driver script. Runs one read-only
-  `opencode run --agent explore` call per module subdirectory,
-  concurrency-limited, resumable (skips modules that already have a
-  non-empty output file), safe to interrupt and re-run.
+- `analyze-modules.sh` — the driver script. Runs one `opencode run
+  --agent plan` call per module subdirectory (edit/write denied by
+  permission, so the model can't touch the codebase it analyzes — see
+  the script for why `plan` rather than `explore`) and writes the
+  agent's captured answer to the output file itself. Concurrency-
+  limited and resumable — modules that already have a non-empty output
+  file are skipped, so it's safe to interrupt and re-run.
 
 ## Usage
 
@@ -33,10 +36,11 @@ OUT_DIR=/path/to/project/docs/module-analysis \
 
 Optional env vars: `CONCURRENCY` (default `2` — raise once you've
 confirmed the model server handles it without queuing/degrading),
-`AGENT` (default `explore`, opencode's built-in read-only agent —
-deliberately used instead of `build`/`general` so a prompt failure
-can't turn into an actual code edit), `LOG_DIR` (defaults next to
-`OUT_DIR`).
+`LOG_DIR` (defaults next to `OUT_DIR`), and `AGENT` (default `plan` —
+edit/write denied by permission, so a prompt failure can't turn into
+an actual code edit; doesn't restrict bash, so it's not a hard sandbox
+against a model that deliberately shells out — see `analyze-modules.sh`
+for the full reasoning).
 
 For a genuinely unattended multi-hour run (walk away, don't keep a
 terminal open), background it with `nohup`/`tmux`/`screen`, or on the

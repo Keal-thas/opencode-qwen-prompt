@@ -116,9 +116,11 @@ items. This file is about *how* to work on it.
   own dedicated native prompt (`explore`, `compaction`, `summary`,
   `title`) load them from `packages/opencode/src/agent/prompt/*.txt` in
   that repo. `build`, `plan`, and `general` have no prompt field set in
-  source at all — worth remembering if this needs re-checking after an
-  opencode upgrade, since version 1.14.30 (installed on this dev
-  machine) is what all of the above was verified against. Permission
+  source at all — originally verified against 1.14.30, re-confirmed
+  2026-09-13 against 1.18.30 (npm-latest at the time) via the Docker
+  sandbox below, so this still holds four minor versions later. Keep
+  pinned versions at npm-latest and re-check this note on future
+  upgrades rather than assuming it still holds. Permission
   logic is `packages/opencode/src/permission/index.ts`; the Task tool
   (subagent invocation) is `packages/opencode/src/tool/task.ts` +
   `task.txt`; base-prompt-by-model-ID selection is

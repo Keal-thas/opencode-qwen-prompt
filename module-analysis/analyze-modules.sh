@@ -2,9 +2,12 @@
 # Unattended, concurrency-limited, resumable per-module analysis runner.
 #
 # Iterates every immediate subdirectory of MODULES_DIR, and for each one
-# runs a read-only opencode agent to produce a module-analysis doc using
-# the template in prompt-template.md. Safe to interrupt and re-run: any
-# module that already has a non-empty output file is skipped.
+# runs opencode's `plan` agent (edit/write tools permission-denied) to
+# produce a module-analysis doc using the template in prompt-template.md.
+# The agent can't write the doc itself (that's the point), so this script
+# captures its final answer via --format json and writes it to the output
+# file directly. Safe to interrupt and re-run: any module that already
+# has a non-empty output file is skipped.
 #
 # Usage:
 #   MODULES_DIR=/path/to/project/src/modules \
@@ -21,7 +24,14 @@ MODULES_DIR="${MODULES_DIR:?set MODULES_DIR to the directory containing one subd
 OUT_DIR="${OUT_DIR:?set OUT_DIR to where the analysis .md files should be written}"
 LOG_DIR="${LOG_DIR:-$OUT_DIR/../logs/module-analysis}"
 CONCURRENCY="${CONCURRENCY:-2}"
-AGENT="${AGENT:-explore}"  # read-only agent — can't modify code even if the prompt fails to constrain it
+# plan: a primary agent with edit/write tools permission-denied (confirmed
+# via `opencode debug agent plan`). explore would fit better by design,
+# but it's a subagent and can't be run directly — `opencode run --agent
+# explore` silently falls back to the full-access build agent instead.
+# Caveat: plan's bash tool is unrestricted, so this blocks the edit/write
+# tool path, not a model that deliberately shells out to modify files —
+# that's still enforced by the prompt only (see "不要修改任何代码" below).
+AGENT="${AGENT:-plan}"
 
 mkdir -p "$OUT_DIR" "$LOG_DIR"
 
@@ -58,7 +68,7 @@ analyze_one() {
 5. 代码质量/存疑点：只列有具体证据支撑的问题，不要泛泛而谈"代码质量差"。
 
 ## 输出格式
-Markdown，保存到 ${out_file}：
+直接在你的最终回复中输出以下 Markdown 内容（不要自己写文件，脚本会自动保存你的回复）：
 
 ## 模块概述
 ## 对外接口
@@ -75,7 +85,35 @@ EOF
 )
 
   echo "[start] $module_name"
-  if opencode run --agent "$AGENT" "$prompt" > "$log_file" 2>&1; then
+  # --format json: raw JSON-events stream, so the final answer can be
+  # pulled out reliably instead of scraping ANSI-decorated terminal
+  # output. The agent's own write tool is denied by permission (see
+  # AGENT above), so the analysis text never lands anywhere unless this
+  # script extracts it itself.
+  if opencode run --agent "$AGENT" --format json "$prompt" > "$log_file" 2>&1; then
+    python3 - "$log_file" "$out_file" <<'PYEOF'
+import json
+import sys
+
+log_path, out_path = sys.argv[1], sys.argv[2]
+text = ""
+with open(log_path) as f:
+    for line in f:
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            event = json.loads(line)
+        except ValueError:
+            continue  # a non-JSON line (e.g. a stderr warning captured via 2>&1)
+        if event.get("type") == "text":
+            text = event.get("part", {}).get("text", "")
+with open(out_path, "w") as f:
+    f.write(text)
+PYEOF
+  fi
+
+  if [[ -s "$out_file" ]]; then
     echo "[done] $module_name"
   else
     echo "[FAIL] $module_name (see $log_file)"
