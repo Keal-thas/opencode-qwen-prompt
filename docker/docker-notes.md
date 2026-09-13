@@ -60,15 +60,7 @@ volume path and another outside any mount, across two separate
   That all lives in the container's writable layer, which is wiped the
   moment `--rm` destroys it.
 
-Where the volumes physically live on the Mac: inside Docker Desktop's
-own VM disk image
-(`~/Library/Containers/com.docker.docker/Data/vms/0/data/Docker.raw`
-on this machine) — not a real path on the Mac filesystem
-(`/var/lib/docker/volumes/.../  _data` as reported by `docker volume
-inspect` is a path *inside* that VM, doesn't exist on the Mac side).
-Opaque, Docker-managed, don't touch the `.raw` file directly — go
-through `docker volume` or a throwaway container with `-v` if you ever
-need to look inside one directly.
+The volumes live inside Docker Desktop's own VM disk image, not at a real Mac filesystem path — the path `docker volume inspect` prints is inside that VM. Don't try to touch it directly; go through `docker volume` or a throwaway container with `-v` if you need to look inside one.
 
 ## Container user
 
