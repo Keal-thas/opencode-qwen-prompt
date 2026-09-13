@@ -9,7 +9,8 @@ This is a separate, standalone tool that happens to live in this repo
 alongside the system-prompt override — it doesn't depend on
 `deploy/system-prompt.txt` being installed, only on `opencode` being on
 PATH and configured with a working provider (e.g. the vLLM + Qwen setup
-this repo's SETUP.md configures).
+this repo's SETUP.md configures), plus a one-time `npm install` here
+for `@opencode-ai/sdk` (see Usage below).
 
 ## What's here
 
@@ -17,17 +18,24 @@ this repo's SETUP.md configures).
   placeholders: `@@MODULE_PATH@@` (the module directory being analyzed)
   and `@@MODULES_ROOT@@` (the parent directory holding all modules, so
   the agent has an actually-executable scope for its reverse-dependency
-  grep). This file is the single source of truth: `analyze-modules.sh`
+  grep). This file is the single source of truth: `analyze-modules.mjs`
   reads it and substitutes the placeholders rather than carrying its
   own copy of the prompt. See "Why the prompt looks like this" below
   for the thinking behind its structure.
-- `analyze-modules.sh` — the driver script. Runs one `opencode run
-  --agent plan` call per module subdirectory (edit/write denied by
-  permission, so the model can't touch the codebase it analyzes — see
-  the script for why `plan` rather than `explore`) and writes the
-  agent's captured answer to the output file itself. Concurrency-
-  limited and resumable — modules that already have a non-empty output
-  file are skipped, so it's safe to interrupt and re-run.
+- `analyze-modules.mjs` — the driver script (Node, using
+  `@opencode-ai/sdk`). Starts one real opencode server for the whole
+  run and sends it one `agent: "plan"` prompt per module subdirectory
+  (edit/write denied by permission, so the model can't touch the
+  codebase it analyzes — see the script's own comment for why `plan`
+  rather than `explore`), taking the agent's captured answer straight
+  from the SDK's typed response and writing it to the output file
+  itself. Concurrency-limited (all concurrent runs share the one
+  server, so raising it costs no extra startup overhead) and resumable
+  — modules that already have a non-empty output file are skipped, so
+  it's safe to interrupt and re-run.
+- `package.json` — this directory's own npm package (its only
+  dependency is `@opencode-ai/sdk`), the same pattern `mcp/oracle/`
+  uses for its own SDK dependency.
 
 ## Why the prompt looks like this
 
@@ -64,18 +72,24 @@ Structural choices beyond that core rule:
 ## Usage
 
 ```bash
+cd module-analysis && npm install   # once, pulls in @opencode-ai/sdk
+
 MODULES_DIR=/path/to/project/src/modules \
 OUT_DIR=/path/to/project/docs/module-analysis \
-./analyze-modules.sh
+./analyze-modules.mjs
 ```
 
 Optional env vars: `CONCURRENCY` (default `2` — raise once you've
-confirmed the model server handles it without queuing/degrading),
-`LOG_DIR` (defaults next to `OUT_DIR`), and `AGENT` (default `plan` —
-edit/write denied by permission, so a prompt failure can't turn into
-an actual code edit; doesn't restrict bash, so it's not a hard sandbox
-against a model that deliberately shells out — see `analyze-modules.sh`
-for the full reasoning).
+confirmed the model server handles it without queuing/degrading; all
+concurrent runs share the one opencode server this script starts, so
+raising this costs no extra server-startup overhead), `LOG_DIR`
+(defaults next to `OUT_DIR`), and `AGENT` (default `plan` — edit/write
+denied by permission, so a prompt failure can't turn into an actual
+code edit; doesn't restrict bash, so it's not a hard sandbox against a
+model that deliberately shells out — see `analyze-modules.mjs`'s own
+comment, and [CLAUDE.md](../CLAUDE.md)'s hard-won-lessons section, for
+why `plan` beats `explore` here despite `explore` fitting the
+read-only framing better by name).
 
 For a genuinely unattended multi-hour run (walk away, don't keep a
 terminal open), background it with `nohup`/`tmux`/`screen`, or on the
@@ -92,8 +106,18 @@ the final summary line in stdout.
   re-analyze each group together with shared context. Not built yet.
 - Not yet run against a real target codebase — designed and reviewed,
   but unverified end-to-end.
-- The concurrency/driver design in `analyze-modules.sh` (a shell loop
-  over `xargs -P`, JSON-events output parsed with an inline Python
-  snippet) is known to be rougher than the rest of this workspace and
-  likely to get revisited, rather than treated as the final shape of
-  this tool.
+- `analyze-modules.mjs` (rewritten 2026-09-14, replacing the original
+  bash + `opencode run --format json` + inline-Python-log-scraping
+  driver) now uses `@opencode-ai/sdk`'s typed `client.session.prompt()`
+  against a real opencode server it starts itself, verified live
+  against both a fake local model provider and a real DeepSeek-backed
+  one — see `tests/integration/analyze-modules.test.mjs` and
+  [CLAUDE.md](../CLAUDE.md)'s hard-won-lessons section for what that
+  live testing turned up (notably: the CLI's "can't run a subagent
+  directly" restriction doesn't exist at the SDK/HTTP layer, but
+  `explore`'s read-only behavior turned out to be prompt-only with no
+  permission-layer backing, so `plan` stays the default). One open
+  question this rewrite didn't chase down: `createOpencode()` defaults
+  to port 4096, same as an interactive `opencode` TUI session — running
+  this while one is already open on the same machine hasn't been
+  tested and may collide.

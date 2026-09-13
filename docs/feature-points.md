@@ -3,7 +3,7 @@
 A feature-by-feature inventory of this workspace. Index only — details in `feature-points/`. Test coverage notes reference `tests/` (see `tests/README.md` for the canonical, test-focused breakdown). Update this when a feature point is added, removed, or its test coverage changes.
 
 1. [Qwen system-prompt override](feature-points/01-qwen-prompt-override.md) — replaces opencode's default prompt for build/plan/general. **Tested.**
-2. [system-prompt-tools.js plugin](feature-points/02-system-prompt-tools-plugin.md) — dumps the assembled prompt for inspection. **Tested.**
+2. [system-prompt-tools.ts plugin](feature-points/02-system-prompt-tools-plugin.md) — dumps the assembled prompt for inspection. **Tested.**
 3. [hook-logger.ts plugin](feature-points/03-hook-logger-plugin.md) — logs every opencode hook event as JSONL. **Tested.**
 4. [llm-review-gate.ts plugin](feature-points/04-llm-review-gate-plugin.md) — LLM safety review gating `bash` calls. **Tested.**
 5. [Docker dev/test sandbox](feature-points/05-docker-sandbox.md) — isolated container for exercising opencode. **Is the test environment.**
@@ -13,5 +13,5 @@ A feature-by-feature inventory of this workspace. Index only — details in `fea
 9. [Local opencode docs mirror](feature-points/09-docs-mirror.md) — vendored docs + fetch script. **Syntax-tested only.**
 10. [Project memory](feature-points/10-project-memory.md) — git-tracked cross-machine memory. **Not applicable** (no app behavior).
 11. [Release automation](feature-points/11-release-automation.md) — GitHub Actions zip release on tag push. **Untested** (real release action).
-12. [Automated test suite](feature-points/12-test-suite.md) — this session's addition, covers items 1–4 and 6.
+12. [Automated test suite](feature-points/12-test-suite.md) — this session's addition, covers items 1–4 and 6, plus packaging-integrity for items 3–4's shipped tarball.
 13. [Oracle MCP server](feature-points/13-oracle-mcp-server.md) — passthrough `oracle_query` tool, per-request connection, no-op audit hook. **In `tests/` now (`mcp/oracle/oracle.test.mjs`), written but not yet executed.**

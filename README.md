@@ -29,17 +29,13 @@ document).
 - `docker/` — a local Docker sandbox for exercising this workspace's
   prompt/plugins against a real `opencode` install without touching
   your own machine's opencode config; see `docker/docker-notes.md`.
-- `plugins/` — a standalone npm package of custom opencode hook
-  plugins (`hook-logger.ts` + `llm-review-gate.ts`) — part of the
-  "writing tools for opencode" side of this workspace, not the Qwen
-  override. Written in TypeScript against `@opencode-ai/plugin`'s
-  `Plugin` type (the official SDK), not hand-rolled against the raw
-  hook API anymore.
+- `plugins/` — a standalone npm package of custom opencode hook plugins (`hook-logger.ts` + `llm-review-gate.ts`) — part of the "writing tools for opencode" side of this workspace, not the Qwen override. Written in TypeScript against `@opencode-ai/plugin`'s `Plugin` type (the official SDK), not hand-rolled against the raw hook API anymore. Ships to the offline target machine as the committed, pre-packed `plugins/opencode-hook-plugins-1.0.0.tgz` (no registry there to `npm install` from — see CLAUDE.md); after editing any file under `plugins/`, regenerate it by running `npm pack` inside `plugins/` (from within the `docker/` sandbox, per this repo's testing convention), which overwrites the tarball in place — `tests/unit/plugins-tarball.test.mjs` fails the build if the committed tarball and the source drift apart.
 - `module-analysis/` — a practical script for using opencode to
   generate an architecture map of a large codebase. Its own thing, not
-  tied to the Qwen setup; see `module-analysis/README.md`. The
-  concurrency/driver design here is known to be rougher than the rest
-  of this workspace and likely to get revisited.
+  tied to the Qwen setup; see `module-analysis/README.md`. Drives a
+  real opencode server via `@opencode-ai/sdk` rather than shelling out
+  to the CLI (rewritten 2026-09-14 — see that README's Status section
+  for what prompted the change and what was learned along the way).
 - `docs/` — misc research notes plus a local mirror of opencode's own
   docs (`docs/opencode-docs-reference/`), and
   [`docs/feature-points.md`](docs/feature-points.md) (+
@@ -51,7 +47,7 @@ document).
 - `memory/` — git-tracked project memory (who's behind this, what it
   is at a glance), kept separate from CLAUDE.md's technical focus.
 - `tests/` — automated tests covering this workspace's feature points
-  (the prompt override, both plugins, `analyze-modules.sh`); see
+  (the prompt override, both plugins, `analyze-modules.mjs`); see
   `tests/README.md`. Always run inside the `docker/` sandbox, never
   against the host's own node/opencode install — `./tests/run-all.sh`
   is the one entry point.
@@ -70,7 +66,7 @@ config — no plugin required for the override itself.
 - `system-prompt.txt` — the actual replacement prompt content, edit to
   taste.
 - `opencode.json.example` — the config that wires `system-prompt.txt` in.
-- `system-prompt-tools.js` — optional plugin, dumps the fully-assembled
+- `system-prompt-tools.ts` — optional plugin, dumps the fully-assembled
   system prompt to a local file on every request. Diagnostic only, not
   required for the override to work.
 - `captured-example-prompt.txt` — a real capture from a test run
