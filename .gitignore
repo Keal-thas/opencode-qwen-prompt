@@ -8,3 +8,4 @@ node_modules/
 # from anomalyco/opencode), for reference while working on this repo. Third-
 # party content, not part of this repo's actual deliverable - not tracked.
 opencode-docs-reference/
+.idea/
