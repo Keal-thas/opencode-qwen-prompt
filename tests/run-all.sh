@@ -10,7 +10,7 @@ echo "## Building the dev sandbox image (skipped if already up to date) =="
 docker compose -f docker/docker-compose.yml build
 
 echo
-echo "## In-container tests: unit tests + analyze-modules.sh (stubbed opencode) =="
+echo "## In-container tests: unit tests + analyze-modules.mjs (real opencode server, fake model) =="
 docker compose -f docker/docker-compose.yml run --rm opencode-dev bash tests/run-in-container.sh
 
 echo

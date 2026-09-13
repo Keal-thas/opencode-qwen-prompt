@@ -1,0 +1,10 @@
+{
+  "name": "module-analysis",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Batch per-module opencode analysis driver (analyze-modules.mjs) - see README.md",
+  "dependencies": {
+    "@opencode-ai/sdk": "^1.18.30"
+  }
+}
