@@ -9,3 +9,13 @@ node_modules/
 # untracked files.
 .local/
 .idea/
+
+# Still git-tracked and committed normally (see docs/fetch-opencode-docs.sh) -
+# this entry doesn't untrack anything. It only makes ripgrep-based tools
+# (grep/glob in both Claude Code and opencode itself) skip this directory
+# during broad recursive search, since these mirrored doc pages are long and
+# were getting swept into unrelated searches. An explicit path (reading a
+# specific file, or `rg pattern docs/opencode-docs-reference/`) still works -
+# only recursive discovery is filtered. New pages added by the fetch script
+# need `git add -f` since gitignored paths aren't auto-picked-up as untracked.
+docs/opencode-docs-reference/

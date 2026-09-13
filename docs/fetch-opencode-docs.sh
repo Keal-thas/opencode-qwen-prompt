@@ -1,10 +1,18 @@
 #!/usr/bin/env bash
 # Fetches the top-level English opencode docs pages (upstream
 # anomalyco/opencode, dev branch, packages/web/src/content/docs/) into
-# docs/opencode-docs-reference/. Committed on purpose (not gitignored):
-# the actual target machine has no internet access at all, so this
-# travels with the repo in the zip transfer, and whoever is deploying or
-# troubleshooting there can read the real docs instead of opencode.ai/docs.
+# docs/opencode-docs-reference/. Committed to git on purpose: the actual
+# target machine has no internet access at all, so this travels with the
+# repo in the zip transfer, and whoever is deploying or troubleshooting
+# there can read the real docs instead of opencode.ai/docs.
+#
+# The directory IS listed in .gitignore, but that's only to keep
+# ripgrep-based tools (grep/glob, in both Claude Code and opencode) from
+# sweeping these long pages into unrelated broad searches - it does not
+# untrack anything already committed. If this script ever adds a
+# genuinely new page (not just updating an existing one), `git add`
+# needs the `-f` flag for it, since gitignored paths don't show up as
+# untracked automatically.
 #
 # Only the top-level English .mdx files - the API also lists ~17 locale
 # subdirectories (ar/, de/, zh-cn/, ...) alongside them; skipped on

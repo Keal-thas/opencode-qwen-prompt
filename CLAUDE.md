@@ -40,12 +40,15 @@ This is a single-person project used across multiple machines/environments (this
   matters, grep the real source for it, the way `OPENCODE_MODELS_PATH`
   and `OPENCODE_DISABLE_MODELS_FETCH` were originally confirmed.
 - **A local copy of opencode's own docs lives at
-  `docs/opencode-docs-reference/`** — committed (not gitignored,
-  2026-09-13 onward), since the actual target machine has no internet
-  and this travels with the repo. All 36 top-level English `.mdx`
-  pages from `packages/web/src/content/docs/` in upstream (locale
-  subdirectories skipped on purpose). Refresh with
-  `./docs/fetch-opencode-docs.sh`.
+  `docs/opencode-docs-reference/`** — git-tracked and committed since
+  the actual target machine has no internet and this travels with the
+  repo. All 36 top-level English `.mdx` pages from
+  `packages/web/src/content/docs/` in upstream (locale subdirectories
+  skipped on purpose). Refresh with `./docs/fetch-opencode-docs.sh`.
+  As of 2026-09-13 the directory is *also* listed in `.gitignore` —
+  see that file's comment, and the "ripgrep keeps honoring
+  `.gitignore`..." entry under Hard-won lessons below, for why that
+  doesn't untrack anything.
 - **Concrete incidents behind the "verify against the real thing" preference above** — kept here since they're specific enough to be worth remembering, even though the general rule already lives in Preferences: a third-party gist falsely claimed a `qwen.txt` fallback prompt exists (settled in minutes by testing instead of trusting the gist); sources disagreed on whether `agent.prompt` replaces or just appends to the provider prompt (settled via `opencode debug config` + a throwaway plugin); `opencode debug agent <name>` gives the resolved prompt for every built-in agent directly, without needing to trigger each one through a live chat, and confirmed `explore`/`general` can't be invoked directly via `opencode run --agent` (prints a warning, falls back to `build`) — which is exactly the mechanism that later caused the real `module-analysis` safety bug.
 - **Prefer the simplest mechanism that works, even if it means undoing
   earlier work.** First approach was a JS plugin that intercepted and
@@ -91,6 +94,7 @@ This is a single-person project used across multiple machines/environments (this
   doesn't reliably self-summarize, independent of whether the
   delegation *prompt* line (above) gets the model to invoke `general`
   in the first place.
+- **ripgrep keeps honoring `.gitignore` patterns for a path even after that path is already git-tracked and committed — this is what makes it safe to gitignore `docs/opencode-docs-reference/` without untracking anything.** Verified live (2026-09-13) in this repo: after adding the already-committed `docs/opencode-docs-reference/` to `.gitignore`, `git check-ignore` reported it as *not* ignored (git's own status/checkout machinery only consults `.gitignore` for untracked paths, so already-tracked files are exempt) and `git ls-files`/`git status` showed the tracked files completely unaffected — but `rg` recursive search from the repo root still skipped the directory entirely, only finding its content again when given the exact path explicitly. So git and ripgrep disagree on what "ignored" means for a tracked path, and that gap is exactly the lever: put a long, generated-but-committed reference doc in `.gitignore` and grep/glob-based tools (in both Claude Code and opencode — [tools.mdx](docs/opencode-docs-reference/tools.mdx) documents this as the same ripgrep-under-the-hood behavior for opencode's own `grep`/`glob` tools) stop sweeping it into broad searches, while git keeps tracking, diffing, and shipping it exactly as before. The one real cost: a brand-new file added under a gitignored path needs `git add -f`, since it no longer shows up as untracked on its own.
 
 - **Checking for full-width/Chinese punctuation via shell `grep -P` in
   this bash environment is unreliable** — multi-byte Unicode literals
