@@ -14,7 +14,7 @@ if (!ORACLE_CONNECT_STRING || !ORACLE_USER || !ORACLE_PASSWORD) {
 
 // Extension point for the audit layer this tool intentionally ships without:
 // a rule-based (regex/keyword denylist) or LLM-based check (mirroring
-// plugins/llm-review-gate.js's tool.execute.before gate) can plug in here
+// plugins/llm-review-gate.ts's tool.execute.before gate) can plug in here
 // later without touching executeQuery(). Until then this is a no-op that
 // allows everything - oracle_query is a full passthrough by design, not an
 // oversight. See mcp/oracle/README.md for why.
