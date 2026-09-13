@@ -29,14 +29,13 @@ Listens on stdio for MCP protocol messages.
 
 ## Testing against a real Oracle instance
 
-`docker/docker-compose.yml` has an opt-in `oracle` service (`gvenzl/oracle-free`, see `docker/docker-notes.md`'s "Oracle test instance" section) for exactly this. From the repo root:
+`docker/docker-compose.yml` has an `oracle` service (`gvenzl/oracle-free`, see `docker/docker-notes.md`'s "Oracle test instance" section for the tradeoffs behind this) that `opencode-dev` automatically brings up and waits on - no separate step needed. From the repo root:
 
 ```sh
-docker compose -f docker/docker-compose.yml up -d oracle   # first run: 1-3 min to initialize
 docker compose -f docker/docker-compose.yml run --rm opencode-dev bash
 ```
 
-Then, inside that shell, `cd mcp/oracle && npm install` and point `ORACLE_CONNECT_STRING` at `oracle:1521/FREEPDB1` with the `ORACLE_APP_USER`/`ORACLE_APP_USER_PASSWORD` values from `docker/.env`.
+`ORACLE_CONNECT_STRING`/`ORACLE_USER`/`ORACLE_PASSWORD` are already set inside that shell, pointing at the sibling `oracle` service - just `cd mcp/oracle && npm install && npm start`. First time on a fresh machine or volume, that `run` command itself takes 1-3 minutes before the shell even opens (Oracle's first-time DB init) - see docker-notes.md.
 
 ## Status
 
