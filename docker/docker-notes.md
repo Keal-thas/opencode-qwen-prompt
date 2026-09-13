@@ -3,7 +3,7 @@
 `Dockerfile` + `docker-compose.yml` (both here in `docker/`) give a
 local, isolated container for exercising this repo's prompt/plugins
 (`deploy/system-prompt.txt`, `deploy/opencode.json.example`,
-`plugins/hook-logger.js`, `plugins/llm-review-gate.js`, ...) against a
+`plugins/hook-logger.ts`, `plugins/llm-review-gate.ts`, ...) against a
 real `opencode` install, without touching the host machine's own
 opencode config and without needing to trust an all-permission agent
 with anything outside the container.
@@ -74,7 +74,9 @@ container.
 
 Worth remembering if the `Dockerfile` ever gets rewritten from scratch:
 
-1. `node:20-bookworm` already ships a `node` user/group at uid/gid
+1. `node:22-bookworm` (was `node:20-bookworm` until the `plugins/`
+   rewrite to TypeScript needed native type-stripping support — see
+   below) already ships a `node` user/group at uid/gid
    1000 — collides with creating `dev` at the same default IDs.
    Fixed by dropping the unused `node` user/group first.
 2. Docker creates named volumes root-owned before the image's `USER`
@@ -117,6 +119,34 @@ so a rebuild months from now reproduces the same environment instead of
 silently picking up a newer opencode. Bump it by editing that one line
 in `docker/.env` (check `npm view opencode-ai version` for the current
 release first), then `docker compose -f docker/docker-compose.yml build`.
+
+## Base image Node version
+
+`FROM node:22-bookworm` — bumped from `node:20-bookworm` (2026-09-13)
+when `plugins/hook-logger.js`/`plugins/llm-review-gate.js` were rewritten
+in TypeScript against `@opencode-ai/plugin`'s `Plugin` type. Verified
+directly (not assumed): downloaded real `node-v20.18.1` and
+`node-v22.23.2` darwin-arm64 builds and ran `node --test` against the
+rewritten `.ts` plugin unit tests on each — Node 20 has no TypeScript
+support at all (not even behind a flag; `--experimental-strip-types`
+doesn't exist on it), Node 22.23.2 runs `.ts` files with type
+annotations natively, no flag needed. Node 20 ("Iron") was also at or
+past its own LTS end-of-life by the time of this bump anyway. If a
+future plugin needs TS syntax that isn't purely type-erasable (enums,
+`namespace`, parameter-property shorthand), those still need an actual
+transpile step — Node's type-stripping only erases annotations, it
+doesn't compile.
+
+This bump also broke `tests/run-in-container.sh`'s `node --test
+tests/unit` invocation in an unrelated way: on Node 20 a bare directory
+argument gets auto-scanned for test files, but on Node 22 it throws
+`ERR_MODULE_NOT_FOUND` (tries to resolve the directory path as a single
+module instead). Caught by actually running `./tests/run-all.sh`
+end-to-end against the real rebuilt image, not by reasoning about the
+Node bump in isolation. Fixed by switching that line to an explicit
+glob, `node --test tests/unit/*.test.mjs`, which works on both
+versions. Full pipeline (build + unit tests + both integration tests)
+verified green after the fix, 2026-09-13.
 
 ## Verifying the system-prompt override actually works
 

@@ -1,7 +1,7 @@
 # Local dev/test sandbox for this repo: a real opencode install plus
 # Node/npm/Python, so deploy/system-prompt.txt, deploy/opencode.json.example,
-# and the plugins (deploy/system-prompt-tools.js, plugins/hook-logger.js,
-# plugins/llm-review-gate.js) can be exercised against a real `opencode
+# and the plugins (deploy/system-prompt-tools.js, plugins/hook-logger.ts,
+# plugins/llm-review-gate.ts) can be exercised against a real `opencode
 # run` without touching the host machine's own opencode config or
 # letting an all-permission agent loose on anything outside this
 # container.
@@ -11,7 +11,7 @@
 # up from this Dockerfile), which bind-mounts the repo at build/run time
 # so host edits show up immediately without a rebuild. This image only
 # provides the toolchain.
-FROM node:20-bookworm
+FROM node:22-bookworm
 
 # git: opencode itself shells out to it (repo checks, the <env> block).
 # python3: SETUP.md's JSON-validation step uses a `python -c` one-liner.
@@ -37,7 +37,7 @@ RUN npm install -g "opencode-ai@${OPENCODE_VERSION}"
 
 # Non-root user: an all-permission agent's blast radius should stay
 # inside this container's filesystem view, not run as root within it.
-# node:20-bookworm already ships a "node" user/group at 1000:1000, which
+# node:22-bookworm already ships a "node" user/group at 1000:1000, which
 # we don't use — drop it first so it doesn't collide with our default.
 ARG USERNAME=dev
 ARG UID=1000

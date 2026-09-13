@@ -1,4 +1,4 @@
-// llm-review-gate.js takes its opencode `client` as a constructor argument,
+// llm-review-gate.ts takes its opencode `client` as a constructor argument,
 // so it can be exercised with a fake client here - no real opencode session,
 // no model server, no network. outDir is still homedir()-derived at import
 // time, so HOME is redirected first like the other plugin tests.
@@ -11,7 +11,7 @@ import { join } from "node:path";
 const fakeHome = await mkdtemp(join(tmpdir(), "llm-review-gate-test-"));
 process.env.HOME = fakeHome;
 
-const { LlmReviewGate } = await import("../../plugins/llm-review-gate.js");
+const { LlmReviewGate } = await import("../../plugins/llm-review-gate.ts");
 const logFile = join(fakeHome, "opencode-hook-output", "llm-review.jsonl");
 
 after(() => rm(fakeHome, { recursive: true, force: true }));
