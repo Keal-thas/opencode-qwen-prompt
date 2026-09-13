@@ -1,6 +1,8 @@
 # mcp/ backlog
 
 - [ ] **Loki** — highest priority next. Query the Loki HTTP API (`/loki/api/v1/query_range`) directly, no driver dependency needed (just `fetch`), naturally read-only since Loki's query API has no write side. Should be simpler than `oracle/` for exactly that reason.
+- [ ] `oracle/`'s `auditQuery()` hook — currently a no-op that allows every SQL statement, by explicit decision (2026-09-13): not urgent, do it later. Rule-based (regex/keyword denylist) or LLM-based (mirroring `plugins/llm-review-gate.js`), or both — undecided.
+- [ ] `oracle/` offline deployment — `deploy/opencode.json.example` now has an `mcp.oracle` entry (SETUP.md step 5), but that only wires the *config*. The target machine has no internet, so `mcp/oracle/`'s `node_modules` (`@modelcontextprotocol/sdk` + `oracledb`) need to be vendored ahead of time and copied across, the same problem already solved for `plugins/` (`opencode-hook-plugins-1.0.0.tgz`) — not done yet for `mcp/oracle/`. Copying just `server.js`/`package.json` alone will not work on that machine.
 - [ ] Redis — official `redis/mcp-redis` exists but defaults to read/write; would need trimming to a read-only tool set (or an ACL-based read-only Redis user) before use here.
 - [ ] MySQL — several community MCP servers exist; pick one that's actually read-only at the SQL layer, not just by convention, before adopting.
 - [ ] xxl-job — no existing implementation anywhere (confirmed via [xuxueli/xxl-job#3775](https://github.com/xuxueli/xxl-job/issues/3775), open since 2025-08-11, unresolved). Would mean reading xxl-job-admin's internal AJAX endpoints directly, no public API docs to go from. Read-only (job/log status) only — never expose trigger/kill.

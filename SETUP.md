@@ -153,7 +153,41 @@ forward slashes and `file:///` prefix, e.g.
 `file:///C:/Users/<name>/.config/opencode/plugins/system-prompt-tools.js`) —
 don't guess it, derive it from `$CONFIG_DIR`.
 
-## 5. Verify
+## 5. (Optional, not fully supported yet) Add the Oracle MCP server
+
+**Stop and tell the human running this that this step is incomplete before attempting it**: `mcp/oracle/` needs its npm dependencies (`@modelcontextprotocol/sdk`, `oracledb`) present, and this machine has no internet to `npm install` them. Nothing in this repo yet vendors those dependencies for offline use the way `plugins/opencode-hook-plugins-1.0.0.tgz` does for the plugins — see `mcp/TODO.md`. Do not attempt to work around this by guessing at a substitute package or fetching from an unofficial mirror; ask the human instead.
+
+If those dependencies have somehow already been made available (e.g. a `node_modules` was vendored and transferred alongside the rest of `$SRC_DIR`), copy the whole directory in:
+
+```bash
+mkdir -p "$CONFIG_DIR/mcp"
+cp -r "$SRC_DIR/mcp/oracle" "$CONFIG_DIR/mcp/oracle"
+```
+
+Then add this to `opencode.json`'s top level (merge, don't replace, same rule as step 2) — `deploy/opencode.json.example` already carries this same block with placeholder values, `enabled: false`:
+
+```json
+"mcp": {
+  "oracle": {
+    "type": "local",
+    "command": ["node", "/<absolute path to>/mcp/oracle/server.js"],
+    "environment": {
+      "ORACLE_CONNECT_STRING": "hostname:1521/service_name",
+      "ORACLE_USER": "username",
+      "ORACLE_PASSWORD": "password"
+    },
+    "enabled": true
+  }
+}
+```
+
+Three things need real values, none of which this repo or an executing agent should guess — ask the human running this:
+- the absolute path to `command`'s `server.js`, the same way step 4 derives the plugin's path from `$CONFIG_DIR`
+- the real `ORACLE_CONNECT_STRING`/`ORACLE_USER`/`ORACLE_PASSWORD` for whatever internal Oracle instance this is meant to reach — this repo has no way to know that
+
+`oracle_query` is a full passthrough (no read-only enforcement — see `mcp/oracle/README.md`) by deliberate design, not an oversight; that design choice is unrelated to this deployment step.
+
+## 6. Verify
 
 Run a trivial request against your actual local model:
 
@@ -174,19 +208,19 @@ directory/platform/date. If it still looks like the original verbose
 default, the `agent.prompt` config wasn't picked up — check for a JSON
 syntax error in `opencode.json` first.
 
-## 6. Cleanup (optional)
+## 7. Cleanup (optional)
 
 `$SRC_DIR` (the extracted zip) and the original zip file itself can be
 deleted if you don't want them left on disk — they're not needed once
-`$CONFIG_DIR/system-prompt.txt` and (if installed)
-`$CONFIG_DIR/plugins/system-prompt-tools.js` are in place, those two
-are the only files that actually matter going forward. Ask the human
-running this before deleting anything they might want to keep around
-instead of assuming.
+`$CONFIG_DIR/system-prompt.txt`, `$CONFIG_DIR/plugins/system-prompt-tools.js`
+(if installed), and `$CONFIG_DIR/mcp/oracle/` (if installed) are in
+place; those are the only files that actually matter going forward.
+Ask the human running this before deleting anything they might want to
+keep around instead of assuming.
 
 ## Report back
 
 State plainly: did `opencode.json` already exist (was it merged or
-created fresh)? Did verification in step 5 confirm the custom prompt is
+created fresh)? Did verification in step 6 confirm the custom prompt is
 actually being sent? If not, what did the actual output look like
 instead?

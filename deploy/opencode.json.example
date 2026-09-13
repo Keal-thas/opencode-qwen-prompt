@@ -10,5 +10,17 @@
     "general": {
       "prompt": "{file:./system-prompt.txt}"
     }
+  },
+  "mcp": {
+    "oracle": {
+      "type": "local",
+      "command": ["node", "/<absolute path to>/mcp/oracle/server.js"],
+      "environment": {
+        "ORACLE_CONNECT_STRING": "hostname:1521/service_name",
+        "ORACLE_USER": "username",
+        "ORACLE_PASSWORD": "password"
+      },
+      "enabled": false
+    }
   }
 }

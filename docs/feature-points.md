@@ -14,4 +14,4 @@ A feature-by-feature inventory of this workspace. Index only — details in `fea
 10. [Project memory](feature-points/10-project-memory.md) — git-tracked cross-machine memory. **Not applicable** (no app behavior).
 11. [Release automation](feature-points/11-release-automation.md) — GitHub Actions zip release on tag push. **Untested** (real release action).
 12. [Automated test suite](feature-points/12-test-suite.md) — this session's addition, covers items 1–4 and 6.
-13. [Oracle MCP server](feature-points/13-oracle-mcp-server.md) — passthrough `oracle_query` tool, per-request connection, no-op audit hook. **Manually tested end-to-end against a real Oracle instance, not yet in `tests/`.**
+13. [Oracle MCP server](feature-points/13-oracle-mcp-server.md) — passthrough `oracle_query` tool, per-request connection, no-op audit hook. **In `tests/` now (`mcp/oracle/oracle.test.mjs`), written but not yet executed.**
