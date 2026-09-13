@@ -120,11 +120,9 @@ release first), then `docker compose -f docker/docker-compose.yml build`.
 
 ## Verifying the system-prompt override actually works
 
-**Status: user-confirmed working, 2026-09-13. No automated test exists
-for this** — the check below is manual, and this repo doesn't script
-it.
+**Status: user-confirmed working, 2026-09-13.** Automated as of 2026-09-13 in `../tests/integration/docker-prompt-override.test.sh` (run via `../tests/run-all.sh`) — it launches its own disposable container from this image and scripts the exact `opencode debug config` check below, rather than needing a human to re-paste it by hand each time.
 
-Confirmed by hand inside this sandbox via `opencode debug config`,
+The manual version, if you want to reproduce it by hand inside an interactive session of this sandbox: confirmed via `opencode debug config`,
 which showed `agent.build/plan/general.prompt` fully replaced with
 `deploy/system-prompt.txt`'s real content (not the built-in
 `default.txt`). To reproduce, write this into the container's

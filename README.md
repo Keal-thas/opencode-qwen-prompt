@@ -46,6 +46,11 @@ document).
   repo further.
 - `memory/` — git-tracked project memory (who's behind this, what it
   is at a glance), kept separate from CLAUDE.md's technical focus.
+- `tests/` — automated tests covering this workspace's feature points
+  (the prompt override, both plugins, `analyze-modules.sh`); see
+  `tests/README.md`. Always run inside the `docker/` sandbox, never
+  against the host's own node/opencode install — `./tests/run-all.sh`
+  is the one entry point.
 - MCP work — planned as part of this workspace's scope, nothing built
   yet.
 

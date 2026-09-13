@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Fake `opencode` CLI used only by analyze-modules.test.sh, put first on
+# PATH for that one invocation. Understands exactly the one call shape
+# analyze-modules.sh makes: `opencode run --agent <name> --format json <prompt>`.
+# Emits the same shape of JSON-events line the real CLI's --format json
+# produces for a final text answer, so the script's python3 extraction
+# step exercises real parsing logic against fake content.
+set -euo pipefail
+
+prompt="${*: -1}"
+
+if [[ "$prompt" == *"/moduleC"* ]]; then
+  echo "simulated failure for moduleC" >&2
+  exit 1
+fi
+
+if [[ "$prompt" == *"/moduleA"* ]]; then
+  text="moduleA analysis result"
+elif [[ "$prompt" == *"/moduleB"* ]]; then
+  text="moduleB analysis result"
+else
+  text="unrecognized module in test stub"
+fi
+
+printf '{"type":"text","part":{"text":"%s"}}\n' "$text"
