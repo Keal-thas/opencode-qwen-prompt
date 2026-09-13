@@ -1,11 +1,13 @@
+import http from "node:http";
 import oracledb from "oracledb";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 
 const ORACLE_CONNECT_STRING = process.env.ORACLE_CONNECT_STRING;
 const ORACLE_USER = process.env.ORACLE_USER;
 const ORACLE_PASSWORD = process.env.ORACLE_PASSWORD;
+const ORACLE_MCP_PORT = Number(process.env.ORACLE_MCP_PORT ?? "8090");
 
 if (!ORACLE_CONNECT_STRING || !ORACLE_USER || !ORACLE_PASSWORD) {
   console.error("Missing Oracle connection details. Set ORACLE_CONNECT_STRING, ORACLE_USER, ORACLE_PASSWORD.");
@@ -86,46 +88,88 @@ async function executeQuery(sql) {
   }
 }
 
-const server = new Server({ name: "oracle-mcp", version: "1.0.0" }, { capabilities: { tools: {} } });
+function createMcpServer() {
+  const server = new Server({ name: "oracle-mcp", version: "1.0.0" }, { capabilities: { tools: {} } });
 
-server.setRequestHandler(ListToolsRequestSchema, async () => ({
-  tools: [
-    {
-      name: "oracle_query",
-      description:
-        "Execute an ad-hoc SQL statement against the configured Oracle database. Full passthrough - no read-only restriction, no keyword filtering.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          sql: { type: "string", description: "The SQL statement to execute" },
+  server.setRequestHandler(ListToolsRequestSchema, async () => ({
+    tools: [
+      {
+        name: "oracle_query",
+        description:
+          "Execute an ad-hoc SQL statement against the configured Oracle database. Full passthrough - no read-only restriction, no keyword filtering.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            sql: { type: "string", description: "The SQL statement to execute" },
+          },
+          required: ["sql"],
         },
-        required: ["sql"],
       },
-    },
-  ],
-}));
+    ],
+  }));
 
-server.setRequestHandler(CallToolRequestSchema, async (request) => {
-  const { name, arguments: args } = request.params;
+  server.setRequestHandler(CallToolRequestSchema, async (request) => {
+    const { name, arguments: args } = request.params;
 
-  if (name !== "oracle_query") {
-    return { content: [{ type: "text", text: `Unknown tool: ${name}` }], isError: true };
-  }
-  if (!args?.sql) {
-    return { content: [{ type: "text", text: "Missing required argument: sql" }], isError: true };
-  }
+    if (name !== "oracle_query") {
+      return { content: [{ type: "text", text: `Unknown tool: ${name}` }], isError: true };
+    }
+    if (!args?.sql) {
+      return { content: [{ type: "text", text: "Missing required argument: sql" }], isError: true };
+    }
 
-  const result = await executeQuery(args.sql);
-  return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
-});
+    const result = await executeQuery(args.sql);
+    return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+  });
 
-async function main() {
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
-  console.error("Oracle MCP server running on stdio");
+  return server;
 }
 
-main().catch((err) => {
-  console.error("Fatal error:", err);
+// Stateless mode (sessionIdGenerator: undefined) with a fresh Server +
+// transport pair per request, matching the SDK's own reference stateless
+// Streamable HTTP server and mirroring executeQuery()'s one-connection-
+// per-request Oracle design above - there's no session state to share
+// between calls, so nothing is gained by keeping one pair alive across
+// requests, and doing so would mean concurrent requests fighting over the
+// same transport instance.
+const httpServer = http.createServer(async (req, res) => {
+  const url = new URL(req.url, `http://${req.headers.host ?? "localhost"}`);
+  if (url.pathname !== "/mcp") {
+    res.writeHead(404).end();
+    return;
+  }
+  if (req.method !== "POST") {
+    res.writeHead(405, { "Content-Type": "application/json" }).end(
+      JSON.stringify({ jsonrpc: "2.0", error: { code: -32000, message: "Method not allowed." }, id: null }),
+    );
+    return;
+  }
+
+  const mcpServer = createMcpServer();
+  const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
+  res.on("close", () => {
+    transport.close();
+    mcpServer.close();
+  });
+
+  try {
+    await mcpServer.connect(transport);
+    await transport.handleRequest(req, res);
+  } catch (err) {
+    console.error("Error handling MCP request:", err);
+    if (!res.headersSent) {
+      res.writeHead(500, { "Content-Type": "application/json" }).end(
+        JSON.stringify({ jsonrpc: "2.0", error: { code: -32603, message: "Internal server error" }, id: null }),
+      );
+    }
+  }
+});
+
+httpServer.on("error", (err) => {
+  console.error("Fatal server error:", err);
   process.exit(1);
+});
+
+httpServer.listen(ORACLE_MCP_PORT, () => {
+  console.error(`Oracle MCP server listening on http://localhost:${ORACLE_MCP_PORT}/mcp`);
 });
