@@ -1,64 +1,50 @@
-# Module analysis prompt template
+你在分析一个大型单体项目中的**一个业务模块**,目的是为不熟悉该系统的人产出一份可信的模块架构文档。脚本会自动把你的**最终回复**保存为 Markdown 文件,因此请遵守:
 
-Used by `analyze-modules.sh` to drive an unattended, per-directory pass
-over a large single-module monolith (many `Controller`/`Service`/etc.
-subdirectories) to build up an architecture map for someone unfamiliar
-with the system.
-
-Placeholder: `{{MODULE_PATH}}` — substituted by the calling script.
-`analyze-modules.sh` now names the output file itself and saves the
-agent's reply there directly, so the prompt no longer needs an output
-path — see that script for why.
-
-## Design notes
-
-The failure mode this template is built around: on messy/legacy code,
-a model asked to "explain the business logic" will confidently
-fabricate a plausible-sounding explanation for code whose actual
-intent isn't recoverable from the file alone. Formatting instructions
-alone don't fix that — the fix is forcing every claim to carry a
-`file:line` citation and an explicit confidence marker, so an
-ungrounded answer is visibly flagged rather than indistinguishable
-from a grounded one. Anything without evidence must be written as
-"意图不明，需人工确认" (or the English equivalent), never smoothed
-over into a made-up explanation.
-
-## The prompt
-
-```
-你在分析一个大型单体项目的一个业务模块，目的是帮助不熟悉这个系统的人建立可信的整体认知。
-
-目标模块目录：{{MODULE_PATH}}
+- 只读分析,不要写任何文件(写入工具已被禁用)。
+- 最终回复必须**只包含完整的架构文档本身**:不要用代码块包裹全文,文档前后不要出现客套话、总结或解释,否则都会被原样保存进结果文件。
+- 如果模块文件太多、一次回复装不下:优先覆盖 Controller/Service 层,并在"文件清单"末尾列出本次未覆盖的文件,不要想当然补齐。
 
 ## 铁律
-- 每一条结论必须标注证据来源：`文件路径:行号`。没有证据支撑的结论一律标记为 [推测]，绝不能把推测当事实写。
-- 遇到看不懂意图的代码（没注释、命名不清），直接写"意图不明，需人工确认"，不要编一个"合理的"解释。
-- 不要修改任何代码，只读分析。
 
-## 分析步骤
-1. 列出该目录下所有文件及其角色（Controller/Service/Mapper/DTO/Config 等）。
-2. 对每个 Controller 端点，用表格列出：路径 | HTTP方法 | 入参 | 出参 | 一句话业务用途 | 证据(file:line)
-3. 对 Service 层核心逻辑，找出所有条件分支（if/switch/策略模式等），用表格列出：分支条件 | 触发场景 | 对应行为 | 证据(file:line) | 置信度(高/中/低，低于中的要写为什么不确定)
-4. 依赖关系：
-   - 向外依赖：本模块调用了哪些其他模块的类/方法（grep import + 调用点），列出 目标模块 | 被调用的类/方法 | 调用位置(file:line)
-   - 反向依赖：在其他模块目录里 grep 是否有代码 import/调用了本模块的类，同样列出证据。找不到就写"未检索到调用方，可能是入口模块或检索范围不足"，不要写"应该没有人依赖"。
-5. 代码质量/存疑点：只列有具体证据支撑的问题（比如"这个 if 分支和第40行的分支条件重复，可能是历史遗留"），不要泛泛而谈"代码质量差"。
+1. **每一条结论都必须有证据**,格式为 `文件相对路径:行号`。否定性结论(如"没有调用方")也要写明检索范围和做法,例如"在 @@MODULES_ROOT@@ 下 grep `XxxService`,无命中"。
+2. **没有证据就不能写成事实**。看不懂意图的代码(没有注释、命名不清)一律写"意图不明,需人工确认";依据不足的判断标 `[推测]` 并简述依据。严禁编造一个"合理"的解释来凑答案。
+3. 证据与推断的写法示范:
+   - 有证据:`暴露 12 个 HTTP 端点(OrderController.java:8)`
+   - 推断:`该接口疑似为兼容旧版客户端保留 [推测](依据:全项目无任何调用方)`
 
-## 输出格式
-直接在你的最终回复中输出以下 Markdown 内容（不要自己写文件，脚本会自动保存你的回复）：
+## 工作方式与检索范围
 
-## 模块概述
-（2-3句话，基于步骤1-2的证据）
-## 对外接口
-（步骤2的表格）
-## 核心业务逻辑
-（步骤3的表格）
-## 依赖关系
-### 对外调用
-### 被谁调用
-## 代码质量/存疑点
-### 已确认问题
-### 意图不明，需人工确认
+- 优先用 glob/grep 定位代码,再精读相关文件片段,不要无差别整文件通读。
+- 本模块目录:@@MODULE_PATH@@
+- 模块根目录(其他模块的所在位置,反向依赖检索只到这里为止):@@MODULES_ROOT@@
 
-如果某一节因为代码本身信息不足而无法填写，直接写"信息不足，无法分析"，不要为了填满表格而编内容。
-```
+## 输出文档结构
+
+按下面的结构输出。每个表格的列为强制要求;某一格确实没有信息就写"无"或"信息不足",不要编内容。
+
+### 模块概述
+2-3 句话:模块职责、内部如何划分,附至少一条证据。
+
+### 文件清单
+每个文件一行,格式:`文件路径 | 角色(Controller/Service/Mapper/DTO/Config/...) | 一句话说明 | 判断依据`。角色不明确就写"未知,见判断依据"。
+
+### 对外接口
+每个 Controller 端点一行,格式:`路径 | HTTP 方法 | 入参 | 出参 | 一句话业务用途 | 证据(file:line)`。本模块没有 Controller 层,写"信息不足,未发现 Controller 层"。
+
+### 核心业务逻辑
+对每个关键 Service/处理器:先一句话概括它的职责,再用表格列出条件分支/策略分派,格式:`分支/判断点 | 触发场景 | 对应行为 | 证据(file:line) | 置信度(高/中/低)`。置信度不为"高"时,在同一格注明不确定的原因。
+
+### 依赖关系
+#### 对外调用
+本模块调用了其他模块的哪些类/方法,格式:`目标类/方法 | 所在模块 | 调用位置(file:line) | 检索方式`。
+
+#### 被谁调用
+其他模块调用了本模块的什么,格式:`调用方文件 | 调用了本模块的什么 | 证据(file:line)`。在 @@MODULES_ROOT@@ 下检索无命中时写"在 @@MODULES_ROOT@@ 下未检索到调用方,可能是入口模块或检索范围不足",不要写"应该没有人依赖"。
+
+### 代码质量/存疑点
+#### 已确认问题
+只列有具体证据支撑的问题,例如"`A.java:40` 与 `A.java:65` 两处 if 分支条件重复,疑似历史遗留"。禁止"代码质量差"这类没有证据的泛泛之谈。
+#### 意图不明,需人工确认
+列出所有无法从代码确定意图的点,附文件定位。
+
+某一整节因为代码本身信息不足而无法填写时,直接写"信息不足,无法分析",不要为了填满而编内容。

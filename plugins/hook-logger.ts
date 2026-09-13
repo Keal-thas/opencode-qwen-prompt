@@ -2,12 +2,13 @@ import { appendFile, mkdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
+import type { Plugin } from "@opencode-ai/plugin";
 
 const outDir = join(homedir(), "opencode-hook-output");
 
-function safeStringify(value) {
-  const seen = new WeakSet();
-  return JSON.stringify(value, (key, val) => {
+function safeStringify(value: unknown): string {
+  const seen = new WeakSet<object>();
+  return JSON.stringify(value, (_key, val) => {
     if (typeof val === "object" && val !== null) {
       if (seen.has(val)) return "[Circular]";
       seen.add(val);
@@ -17,7 +18,7 @@ function safeStringify(value) {
   });
 }
 
-async function logEvent(name, payload) {
+async function logEvent(name: string, payload: Record<string, unknown>) {
   const file = join(outDir, `${name}.jsonl`);
   const line = safeStringify({ ts: new Date().toISOString(), ...payload }) + "\n";
   try {
@@ -28,7 +29,7 @@ async function logEvent(name, payload) {
   }
 }
 
-export const HookLogger = async () => {
+export const HookLogger: Plugin = async () => {
   return {
     event: async ({ event }) => logEvent("event", { event }),
     config: async (input) => logEvent("config", { input }),
