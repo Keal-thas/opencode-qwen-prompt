@@ -57,3 +57,8 @@ the final summary line in stdout.
   re-analyze each group together with shared context. Not built yet.
 - Not yet run against a real target codebase — designed and reviewed,
   but unverified end-to-end.
+- The concurrency/driver design in `analyze-modules.sh` (a shell loop
+  over `xargs -P`, JSON-events output parsed with an inline Python
+  snippet) is known to be rougher than the rest of this workspace and
+  likely to get revisited, rather than treated as the final shape of
+  this tool.

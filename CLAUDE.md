@@ -5,6 +5,15 @@ items. This file is about *how* to work on it.
 
 ## Hard-won lessons from building this
 
+- **Don't undersell this repo's scope as just the Qwen prompt
+  override.** Corrected by Franco 2026-09-13 after an audit ranked
+  `module-analysis/` and `plugins/` as low-importance/unrelated
+  hitchhikers: this is actually his general opencode tooling
+  workspace — prompt override, custom plugins, practical scripts, and
+  planned MCP work — and the prompt override just happens to be the
+  first piece and the repo's namesake. Don't re-derive the narrower
+  framing from the repo name or from `deploy/` looking like "the real
+  content."
 - **There is no single authoritative list of `OPENCODE_*` env vars —
   not even in official docs.** `cli.mdx`'s `## Environment variables` +
   `### Experimental` tables (checked 2026-08-02) are the closest thing
@@ -122,10 +131,14 @@ items. This file is about *how* to work on it.
   docker-notes.md, `.env` — see docker-notes.md's "Pinned version"
   section for why `.env` is committed and not secret). `plugins/` is
   the separate `opencode-hook-plugins` npm package (hook-logger +
-  llm-review-gate), unrelated to the prompt override. `docs/` is misc
-  research notes plus `opencode-docs-reference/` (see above).
-  `module-analysis/` is its own standalone toolkit,
-  unchanged by the reorg. `.dockerignore` stays at the repo root
+  llm-review-gate) — a real part of this workspace's "write tools for
+  opencode" scope, just not tied to the Qwen override; written directly
+  against opencode's raw hook API and slated for a rewrite against a
+  proper SDK. `docs/` is misc research notes plus
+  `opencode-docs-reference/` (see above). `module-analysis/` is its own
+  standalone toolkit, unchanged by the reorg — its concurrency/driver
+  design is known to be rougher than the rest of this workspace.
+  `.dockerignore` stays at the repo root
   (Docker looks for it at the build context root, and the context is
   the repo root even though the Dockerfile lives in `docker/`).
 - opencode's real upstream repo is

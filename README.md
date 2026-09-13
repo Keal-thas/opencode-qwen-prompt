@@ -1,14 +1,20 @@
-# opencode system prompt: override + view
+# opencode tooling workspace
 
-This repo overrides the system prompt opencode sends to a model, using
-opencode's own config — no plugin required for the override itself.
+A workspace for building things on top of `opencode` (the CLI coding
+agent): a system-prompt override for a specific Qwen deployment, a
+couple of custom opencode plugins, a practical script for using
+opencode to analyze a large codebase, and (planned, not yet built) MCP
+work. The prompt override was the first piece and gives the repo its
+name, but it's one component, not the whole scope — see "Repo layout"
+below for what else lives here and why.
 
-Setup instructions live in [SETUP.md](SETUP.md) — that file is written
-to be handed directly to an agent (paste it as a task, or point a coding
-agent at this repo) and executed step by step, since the intended
-machine to run this on is a network-restricted box you'd rather not do
-this by hand on repeatedly. This file (README.md) is the human-readable
-explanation of what it does and why.
+The prompt override's setup instructions live in
+[SETUP.md](SETUP.md) — that file is written to be handed directly to
+an agent (paste it as a task, or point a coding agent at this repo)
+and executed step by step, since the intended machine to run this on
+is a network-restricted box you'd rather not do this by hand on
+repeatedly. This file (README.md) is the human-readable explanation of
+what it does and why.
 [SETUP-walkthrough.zh.md](SETUP-walkthrough.zh.md) is a Chinese,
 human-facing walkthrough of the same SETUP.md steps — for whoever is
 watching over (or manually doing) the deployment on that machine, not
@@ -18,25 +24,35 @@ document).
 
 ## Repo layout
 
-Only `deploy/` actually ships to the target machine — everything else
-is tooling for working on this repo.
-
-- `deploy/` — the prompt-override payload (see below).
-- `docker/` — a local Docker sandbox for exercising this repo's
+- `deploy/` — the Qwen prompt-override payload, the piece that
+  actually ships to the target machine (see below).
+- `docker/` — a local Docker sandbox for exercising this workspace's
   prompt/plugins against a real `opencode` install without touching
-  your own machine's opencode config. Not part of the deployment; see
-  `docker/docker-notes.md`.
-- `plugins/` — a separate, standalone npm package
-  (`hook-logger.js` + `llm-review-gate.js`, unrelated to the prompt
-  override).
-- `module-analysis/` — a separate, standalone toolkit for generating an
-  architecture map of a large codebase with opencode. Unrelated to the
-  prompt override; see `module-analysis/README.md`.
-- `docs/` — misc research notes.
+  your own machine's opencode config; see `docker/docker-notes.md`.
+- `plugins/` — a standalone npm package of custom opencode hook
+  plugins (`hook-logger.js` + `llm-review-gate.js`) — part of the
+  "writing tools for opencode" side of this workspace, not the Qwen
+  override. Written directly against opencode's raw hook API; the plan
+  is to redo these against a proper SDK instead once one's picked, not
+  keep hand-rolling hook wiring.
+- `module-analysis/` — a practical script for using opencode to
+  generate an architecture map of a large codebase. Its own thing, not
+  tied to the Qwen setup; see `module-analysis/README.md`. The
+  concurrency/driver design here is known to be rougher than the rest
+  of this workspace and likely to get revisited.
+- `docs/` — misc research notes plus a local mirror of opencode's own
+  docs (`docs/opencode-docs-reference/`).
 - `CLAUDE.md` — working notes for whoever (human or agent) edits this
   repo further.
+- MCP work — planned as part of this workspace's scope, nothing built
+  yet.
 
-## What's in `deploy/`
+## Qwen prompt override
+
+opencode overrides the system prompt it sends to a model using its own
+config — no plugin required for the override itself.
+
+### What's in `deploy/`
 
 - `system-prompt.txt` — the actual replacement prompt content, edit to
   taste.
@@ -55,7 +71,7 @@ is tooling for working on this repo.
   See SETUP.md step 3. Optional — the offline build already has a
   build-time snapshot baked in as a fallback either way.
 
-## How the override works
+### How the override works
 
 opencode's per-agent `prompt` config field fully replaces the built-in
 provider prompt (e.g. `default.txt`) — verified by testing directly
@@ -65,7 +81,7 @@ and any `instructions` files you configure are generated fresh by
 opencode itself and still get appended after your custom prompt,
 untouched — you don't have to reconstruct that yourself.
 
-## Why system-prompt.txt looks the way it does
+### Why system-prompt.txt looks the way it does
 
 Written for a professional user, so the hand-holding tone and few-shot
 examples in opencode's default `default.txt` are stripped out (things
@@ -109,7 +125,7 @@ before the Task-tool line above was restored, would never even get
 invoked by the model in the first place. It gets the same override as
 `build`/`plan`.
 
-## Status / open items
+### Status / open items
 
 - Never tested against the actual vLLM + Qwen setup — only validated
   against opencode's own hosted free models on a separate dev machine.
