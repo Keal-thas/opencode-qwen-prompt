@@ -186,7 +186,7 @@ deployment, not this sandbox):
     "plan": { "prompt": "{file:/home/dev/project/deploy/system-prompt.txt}" },
     "general": { "prompt": "{file:/home/dev/project/deploy/system-prompt.txt}" }
   },
-  "plugin": ["/home/dev/project/deploy/system-prompt-tools.js"]
+  "plugin": ["/home/dev/project/deploy/system-prompt-tools.ts"]
 }
 ```
 
