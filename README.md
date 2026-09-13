@@ -41,7 +41,10 @@ document).
   concurrency/driver design here is known to be rougher than the rest
   of this workspace and likely to get revisited.
 - `docs/` — misc research notes plus a local mirror of opencode's own
-  docs (`docs/opencode-docs-reference/`).
+  docs (`docs/opencode-docs-reference/`), and
+  [`docs/feature-points.md`](docs/feature-points.md) (+
+  `docs/feature-points/`) — a feature-by-feature inventory of this
+  workspace, cross-referencing what `tests/` covers for each.
 - `CLAUDE.md` — working notes for whoever (human or agent) edits this
   repo further.
 - `memory/` — git-tracked project memory (who's behind this, what it
