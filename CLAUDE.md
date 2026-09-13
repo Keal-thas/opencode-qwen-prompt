@@ -141,6 +141,7 @@ This is a single-person project used across multiple machines/environments (this
   standalone toolkit, unchanged by the reorg — its concurrency/driver
   design is known to be rougher than the rest of this workspace.
   `tests/` (added 2026-09-13) is the automated test suite covering this workspace's feature points — plugin unit tests, config-consistency checks, and integration tests for `analyze-modules.sh` and the docker sandbox's prompt override; see `tests/README.md` for the full breakdown and `./tests/run-all.sh` to run it.
+  `mcp/` (added 2026-09-13) is MCP servers for LAN-internal ops tooling, one subdirectory per server, hand-rolled against the raw SDK the same way `plugins/` was before its TypeScript rewrite — `mcp/oracle/` (full-passthrough, audit hook currently a no-op by explicit decision) is the one built so far, verified end-to-end against a real Oracle instance and wired into `deploy/opencode.json.example`; see `mcp/TODO.md` for what's next (Loki is highest priority).
   `docs/feature-points.md` (+ `docs/feature-points/`, added 2026-09-13) is a feature-by-feature inventory of this whole workspace — one index file, one detail file per feature — kept separate from `tests/README.md`'s test-focused breakdown; update it when a feature point is added, removed, or its test coverage changes.
   `.dockerignore` stays at the repo root
   (Docker looks for it at the build context root, and the context is
