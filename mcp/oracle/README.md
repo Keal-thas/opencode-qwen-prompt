@@ -29,4 +29,4 @@ Listens on stdio for MCP protocol messages.
 
 ## Status
 
-Not yet wired into `deploy/opencode.json.example` or tested against a real Oracle instance - written and reviewed, not yet run end-to-end. The `auditQuery()` hook is an intentional no-op until a rule-based or LLM-based check is designed for it.
+Verified end-to-end against a real Oracle instance (`gvenzl/oracle-free:slim`, run throwaway in the `docker/` sandbox network) via a real MCP client round-trip: `SELECT ... FROM dual`, `CREATE TABLE`, `INSERT`, then a fresh request's `SELECT *` confirming the insert actually persisted (proving `autoCommit: true` survives the per-request connection closing), `DROP TABLE`, and a query against a nonexistent table to check the error path (`ORA-00942` surfaced cleanly as `{success: false, error}`, not a crash). Not yet wired into `deploy/opencode.json.example`, and not yet added to `tests/` as an automated test - the verification above was manual. The `auditQuery()` hook is an intentional no-op until a rule-based or LLM-based check is designed for it.
