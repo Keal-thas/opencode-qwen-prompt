@@ -111,9 +111,11 @@ a hard rule, independent of how low-stakes the key is claimed to be.
 
 ## Pinned version
 
-`opencode-ai` is pinned via `ARG OPENCODE_VERSION` in the `Dockerfile`
-(currently `1.18.30`, the latest at the time this sandbox was built) —
-deliberately not `@latest`, so a rebuild months from now reproduces the
-same environment. Bump it by hand: check `npm view opencode-ai
-version`, update the `ARG` default (or pass `--build-arg
-OPENCODE_VERSION=<version>` to `docker compose build`).
+`opencode-ai`'s version is pinned in exactly one place: `OPENCODE_VERSION`
+in `.env` at the repo root (a committed, secret-free config file - see
+its own header comment). `docker compose` loads it automatically and
+passes it into the `Dockerfile`'s `ARG OPENCODE_VERSION`. Deliberately
+not `@latest`, so a rebuild months from now reproduces the same
+environment instead of silently picking up a newer opencode. Bump it by
+editing that one line in `.env` (check `npm view opencode-ai version`
+for the current release first), then `docker compose build`.

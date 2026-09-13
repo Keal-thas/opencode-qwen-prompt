@@ -6,6 +6,8 @@ services:
       args:
         UID: "${UID:-1000}"
         GID: "${GID:-1000}"
+        # Sourced from .env - that file is the single place to bump this.
+        OPENCODE_VERSION: "${OPENCODE_VERSION:?set OPENCODE_VERSION in .env}"
     image: opencode-qwen-prompt-dev:latest
     container_name: opencode-qwen-prompt-dev
     working_dir: /home/dev/project

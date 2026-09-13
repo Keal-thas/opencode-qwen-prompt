@@ -26,9 +26,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Pinned, not @latest, so a rebuild months from now reproduces the same
-# environment instead of silently picking up a newer opencode. Bump
-# deliberately: `npm view opencode-ai version` for the current release.
-ARG OPENCODE_VERSION=1.18.30
+# environment instead of silently picking up a newer opencode. The
+# actual version lives in one place: OPENCODE_VERSION in .env at the
+# repo root (docker-compose.yml passes it through as this build arg) -
+# bump it there, not here.
+ARG OPENCODE_VERSION
 RUN npm install -g "opencode-ai@${OPENCODE_VERSION}"
 
 # Non-root user: an all-permission agent's blast radius should stay
