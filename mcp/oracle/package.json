@@ -1,0 +1,19 @@
+{
+  "name": "mcp-oracle",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "description": "MCP server exposing a single passthrough oracle_query tool - see README.md for the connection/audit design",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "oracledb": "^6.5.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}

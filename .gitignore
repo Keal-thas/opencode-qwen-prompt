@@ -10,6 +10,12 @@ node_modules/
 .local/
 .idea/
 
+# Real credentials for the mcp/*/ servers (Oracle/Loki/etc. connection
+# strings, users, passwords) - unlike docker/.env these hold live secrets,
+# not pinned non-secret version data, so they're never committed. Each
+# server's .env.example documents the shape without real values.
+mcp/**/.env
+
 # Still git-tracked and committed normally (see docs/fetch-opencode-docs.sh) -
 # this entry doesn't untrack anything. It only makes ripgrep-based tools
 # (grep/glob in both Claude Code and opencode itself) skip this directory

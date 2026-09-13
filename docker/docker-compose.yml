@@ -40,12 +40,57 @@ services:
     # Optional override: if DEEPSEEK_API_KEY is already set in the
     # invoking shell, it passes through and wins over the .keys file
     # (see docker-entrypoint.sh). Unset on the host = unset here too.
+    #
+    # ORACLE_* pre-wires mcp/oracle/ to the sibling `oracle` service below
+    # (matching the env var names its server.js reads) - no per-session
+    # setup needed, it's just always there and already reachable.
     environment:
       - DEEPSEEK_API_KEY
+      - ORACLE_CONNECT_STRING=oracle:1521/FREEPDB1
+      - ORACLE_USER=${ORACLE_APP_USER:?set ORACLE_APP_USER in .env}
+      - ORACLE_PASSWORD=${ORACLE_APP_USER_PASSWORD:?set ORACLE_APP_USER_PASSWORD in .env}
+    # Deliberate tradeoff (decided 2026-09-13, after first trying opt-in
+    # via `profiles` - see git history if curious): every opencode-dev
+    # session now brings oracle up and waits for it to be healthy first,
+    # even for work that has nothing to do with it, so that nothing -
+    # human or agent - has to remember a separate manual step before
+    # mcp/oracle/ actually works. Costs a bit of idle RAM/CPU and, on a
+    # brand-new machine or volume, the DB's 1-3 minute first-time init on
+    # every `run --rm opencode-dev` until that volume is warm. Accepted
+    # as worth it over the risk of a forgotten manual start.
+    depends_on:
+      oracle:
+        condition: service_healthy
     stdin_open: true
     tty: true
     command: bash
 
+  # Real Oracle instance backing mcp/oracle/'s tests and interactive use -
+  # see opencode-dev's `depends_on` above for why this starts automatically
+  # rather than needing `up -d oracle` on demand. Reachable from
+  # opencode-dev as `oracle:1521/FREEPDB1` via Compose's default service
+  # DNS, no extra network config needed.
+  oracle:
+    image: gvenzl/oracle-free:${ORACLE_FREE_VERSION:?set ORACLE_FREE_VERSION in .env}
+    container_name: opencode-qwen-prompt-oracle-test
+    environment:
+      - ORACLE_PASSWORD=${ORACLE_SYS_PASSWORD:?set ORACLE_SYS_PASSWORD in .env}
+      - APP_USER=${ORACLE_APP_USER:?set ORACLE_APP_USER in .env}
+      - APP_USER_PASSWORD=${ORACLE_APP_USER_PASSWORD:?set ORACLE_APP_USER_PASSWORD in .env}
+    volumes:
+      # First-time init (creating the FREE database + FREEPDB1 pluggable
+      # DB) takes 1-3 minutes - this volume means that only happens once,
+      # not on every `docker compose up`, matching the opencode-config/
+      # opencode-data reasoning above.
+      - oracle-data:/opt/oracle/oradata
+    healthcheck:
+      test: ["CMD", "healthcheck.sh"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
 volumes:
   opencode-config:
   opencode-data:
+  oracle-data:
