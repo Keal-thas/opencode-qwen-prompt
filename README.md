@@ -30,11 +30,11 @@ document).
   prompt/plugins against a real `opencode` install without touching
   your own machine's opencode config; see `docker/docker-notes.md`.
 - `plugins/` — a standalone npm package of custom opencode hook
-  plugins (`hook-logger.js` + `llm-review-gate.js`) — part of the
+  plugins (`hook-logger.ts` + `llm-review-gate.ts`) — part of the
   "writing tools for opencode" side of this workspace, not the Qwen
-  override. Written directly against opencode's raw hook API; the plan
-  is to redo these against a proper SDK instead once one's picked, not
-  keep hand-rolling hook wiring.
+  override. Written in TypeScript against `@opencode-ai/plugin`'s
+  `Plugin` type (the official SDK), not hand-rolled against the raw
+  hook API anymore.
 - `module-analysis/` — a practical script for using opencode to
   generate an architecture map of a large codebase. Its own thing, not
   tied to the Qwen setup; see `module-analysis/README.md`. The
@@ -47,6 +47,7 @@ document).
   workspace, cross-referencing what `tests/` covers for each.
 - `CLAUDE.md` — working notes for whoever (human or agent) edits this
   repo further.
+- `TODO.md` — concrete, actionable follow-up work still to be done.
 - `memory/` — git-tracked project memory (who's behind this, what it
   is at a glance), kept separate from CLAUDE.md's technical focus.
 - `tests/` — automated tests covering this workspace's feature points
@@ -147,3 +148,5 @@ invoked by the model in the first place. It gets the same override as
   that does have internet, then transferred over and extracted locally.
   SETUP.md assumes the extracted copy is already sitting on disk and
   works entirely offline from there.
+
+See [TODO.md](TODO.md) for concrete planned/needed follow-up work.

@@ -1,7 +1,8 @@
 # Working notes for this repo
 
 See README.md for what the project does and its current status/open
-items. This file is about *how* to work on it.
+items, and TODO.md for concrete follow-up work still to be done. This
+file is about *how* to work on it.
 
 ## Preferences
 
@@ -107,6 +108,8 @@ This is a single-person project used across multiple machines/environments (this
   punctuation only, even in Chinese text — missed this once writing
   `SETUP-walkthrough.zh.md` from scratch, caught and fixed on a
   follow-up review, not while writing it originally.
+- **The `docker/` dev sandbox is not safe for concurrent use across worktrees/agents.** Confirmed by reading `docker/docker-compose.yml` (2026-09-13), not by reproducing the race live: it pins both the Compose project name (`name: opencode-qwen-prompt`) and the container name (`container_name: opencode-qwen-prompt-dev`) to fixed values on purpose, so named volumes/state stay put regardless of which worktree invokes it (see the file's own header comment) — but that means two concurrent `docker compose run`/`up` invocations from different worktrees collide on that same container name. Worse than a flaky retry: the bind-mounted repo path (`..`, relative to wherever `docker-compose.yml` is invoked from) differs per worktree, so whichever container wins the name race determines which worktree's files actually end up mounted inside it. If more than one agent/worktree might touch the sandbox around the same time, don't assume `--rm` isolation makes that safe — serialize instead, or skip docker for that session and test against a plain local Node install of the same pinned major version instead (see `docker/.env` / `docker/Dockerfile` for which version).
+- **`plugins/hook-logger.ts`/`llm-review-gate.ts` TypeScript rewrite (2026-09-13): verify a new SDK dependency against the real installed types, not just its docs page.** Downloaded the actual published `@opencode-ai/plugin` tarball (pinned to the same version as `OPENCODE_VERSION` in `docker/.env`) into a scratch dir and ran strict `tsc --noEmit` against the rewritten files before committing — typing `HookLogger`/`LlmReviewGate` as `Plugin` risked an excess-property error if any of hook-logger's less-common hook names (`chat.headers`, `experimental.text.complete`, `tool.definition`, etc.) had drifted out of the real `Hooks` interface; they hadn't, confirmed clean against real `.d.ts` files, not assumed from the plugins.mdx doc page. A second, non-obvious problem only surfaced *because* of that real-environment testing habit: Node 20 (the sandbox's base image at the time) has zero built-in TypeScript support — not even `--experimental-strip-types` exists on it — so shipping `.ts` plugin files would have silently broken `node --test tests/unit` inside the actual docker sandbox despite passing fine on this host's newer local Node. Verified directly by downloading real `node-v20.18.1` and `node-v22.23.2` darwin-arm64 builds and running the real test files against each, rather than trusting Node version-support claims from memory. Fixed by bumping `docker/Dockerfile`'s base image from `node:20-bookworm` to `node:22-bookworm` (see `docker/docker-notes.md`'s "Base image Node version" section) — 22.23.2 runs `.ts` files with type annotations natively, no flag needed; 20 has no path to it at all. That bump surfaced a second, unrelated regression only caught by actually building the image and running `./tests/run-all.sh` end-to-end (2026-09-13, real docker build + real `opencode debug config` integration test, all 17 unit tests + both integration tests green): `node --test tests/unit` (a bare directory, no glob) auto-scans the directory for test files on Node 20 but fails with `ERR_MODULE_NOT_FOUND` on Node 22 — confirmed by running that exact invocation against both real downloaded builds, not inferred. Fixed in `tests/run-in-container.sh` by switching to an explicit glob, `node --test tests/unit/*.test.mjs`, which works on both. Moral: a Node major-version bump for one reason (TS support) can silently break unrelated CLI behavior the test scripts depend on — always run the real suite after, don't stop at "the thing I meant to fix now works."
 - **Don't "fix" punctuation in verbatim captured data** —
   `deploy/captured-example-prompt.txt` has real full-width Chinese punctuation
   inside a captured custom-instructions block, left as-is on purpose:
@@ -129,9 +132,11 @@ This is a single-person project used across multiple machines/environments (this
   section for why `.env` is committed and not secret). `plugins/` is
   the separate `opencode-hook-plugins` npm package (hook-logger +
   llm-review-gate) — a real part of this workspace's "write tools for
-  opencode" scope, just not tied to the Qwen override; written directly
-  against opencode's raw hook API and slated for a rewrite against a
-  proper SDK. `docs/` is misc research notes plus
+  opencode" scope, just not tied to the Qwen override; rewritten in
+  TypeScript (2026-09-13) against `@opencode-ai/plugin`'s `Plugin`
+  type (the official SDK) — no more hand-rolled untyped hook objects,
+  see the Hard-won-lessons entry below for how this was verified.
+  `docs/` is misc research notes plus
   `opencode-docs-reference/` (see above). `module-analysis/` is its own
   standalone toolkit, unchanged by the reorg — its concurrency/driver
   design is known to be rougher than the rest of this workspace.

@@ -4,8 +4,8 @@ A feature-by-feature inventory of this workspace. Index only — details in `fea
 
 1. [Qwen system-prompt override](feature-points/01-qwen-prompt-override.md) — replaces opencode's default prompt for build/plan/general. **Tested.**
 2. [system-prompt-tools.js plugin](feature-points/02-system-prompt-tools-plugin.md) — dumps the assembled prompt for inspection. **Tested.**
-3. [hook-logger.js plugin](feature-points/03-hook-logger-plugin.md) — logs every opencode hook event as JSONL. **Tested.**
-4. [llm-review-gate.js plugin](feature-points/04-llm-review-gate-plugin.md) — LLM safety review gating `bash` calls. **Tested.**
+3. [hook-logger.ts plugin](feature-points/03-hook-logger-plugin.md) — logs every opencode hook event as JSONL. **Tested.**
+4. [llm-review-gate.ts plugin](feature-points/04-llm-review-gate-plugin.md) — LLM safety review gating `bash` calls. **Tested.**
 5. [Docker dev/test sandbox](feature-points/05-docker-sandbox.md) — isolated container for exercising opencode. **Is the test environment.**
 6. [module-analysis toolkit](feature-points/06-module-analysis.md) — batch per-module architecture-doc generator. **Tested.**
 7. [models.dev offline catalog handling](feature-points/07-models-dev-offline-catalog.md) — offline-safe models metadata. **Partially tested** (JSON validity only).

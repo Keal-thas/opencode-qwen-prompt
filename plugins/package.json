@@ -3,7 +3,11 @@
   "version": "1.0.0",
   "type": "module",
   "private": true,
-  "description": "hook-logger + llm-review-gate opencode plugins, packed and installed locally via a file: npm spec (no registry, no server - see CLAUDE.md)",
-  "main": "index.js",
-  "files": ["index.js", "hook-logger.js", "llm-review-gate.js"]
+  "description": "hook-logger + llm-review-gate opencode plugins, packed and installed locally via a file: npm spec (no registry, no server - see CLAUDE.md). Written in TypeScript against @opencode-ai/plugin's Plugin type.",
+  "main": "index.ts",
+  "files": ["index.ts", "hook-logger.ts", "llm-review-gate.ts"],
+  "devDependencies": {
+    "@opencode-ai/plugin": "^1.0.0",
+    "@types/node": "^22.0.0"
+  }
 }

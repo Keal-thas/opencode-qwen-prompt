@@ -1,4 +1,4 @@
-// plugins/hook-logger.js computes its output directory from os.homedir()
+// plugins/hook-logger.ts computes its output directory from os.homedir()
 // at module-load time, so HOME must be pointed at a scratch dir *before*
 // the module is imported.
 import { test, after } from "node:test";
@@ -10,7 +10,7 @@ import { join } from "node:path";
 const fakeHome = await mkdtemp(join(tmpdir(), "hook-logger-test-"));
 process.env.HOME = fakeHome;
 
-const { HookLogger } = await import("../../plugins/hook-logger.js");
+const { HookLogger } = await import("../../plugins/hook-logger.ts");
 
 after(() => rm(fakeHome, { recursive: true, force: true }));
 

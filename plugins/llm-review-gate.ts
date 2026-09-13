@@ -2,6 +2,7 @@ import { appendFile, mkdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
+import type { Plugin } from "@opencode-ai/plugin";
 
 // permission.ask exists in @opencode-ai/plugin's type definitions but is
 // never actually dispatched by opencode's runtime (verified against the
@@ -34,7 +35,11 @@ const REVIEW_TIMEOUT_MS = 30_000;
 
 const outDir = join(homedir(), "opencode-hook-output");
 
-async function logReview(entry) {
+function errorMessage(e: unknown): string {
+  return e instanceof Error ? e.message : String(e);
+}
+
+async function logReview(entry: Record<string, unknown>) {
   const file = join(outDir, "llm-review.jsonl");
   const line = JSON.stringify({ ts: new Date().toISOString(), ...entry }) + "\n";
   try {
@@ -56,9 +61,9 @@ ALLOW
 or
 BLOCK: <one short sentence explaining why>`;
 
-export const LlmReviewGate = async ({ client }) => {
-  let reviewSessionID;
-  const reviewSessionIDs = new Set();
+export const LlmReviewGate: Plugin = async ({ client }) => {
+  let reviewSessionID: string | undefined;
+  const reviewSessionIDs = new Set<string>();
 
   async function ensureReviewSession() {
     if (reviewSessionID) return reviewSessionID;
@@ -71,7 +76,7 @@ export const LlmReviewGate = async ({ client }) => {
     return reviewSessionID;
   }
 
-  async function review(command) {
+  async function review(command: string) {
     const sessionID = await ensureReviewSession();
     const res = await client.session.prompt({
       path: { id: sessionID },
@@ -106,7 +111,7 @@ export const LlmReviewGate = async ({ client }) => {
       try {
         result = await Promise.race([
           review(command),
-          new Promise((_, reject) => setTimeout(() => reject(new Error("review timed out")), REVIEW_TIMEOUT_MS)),
+          new Promise<never>((_, reject) => setTimeout(() => reject(new Error("review timed out")), REVIEW_TIMEOUT_MS)),
         ]);
       } catch (e) {
         const decision = FAIL_OPEN_ON_ERROR ? "allow (fail-open)" : "block (fail-closed)";
@@ -115,11 +120,11 @@ export const LlmReviewGate = async ({ client }) => {
           sessionID: input.sessionID,
           callID: input.callID,
           command,
-          error: String(e?.message ?? e),
+          error: errorMessage(e),
           decision,
         });
         if (FAIL_OPEN_ON_ERROR) return;
-        throw new Error(`llm-review-gate: review unavailable, blocking (fail-closed): ${e?.message ?? e}`);
+        throw new Error(`llm-review-gate: review unavailable, blocking (fail-closed): ${errorMessage(e)}`);
       }
 
       await logReview({
