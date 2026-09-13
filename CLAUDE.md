@@ -45,14 +45,7 @@ This is a single-person project used across multiple machines/environments (this
   pages from `packages/web/src/content/docs/` in upstream (locale
   subdirectories skipped on purpose). Refresh with
   `./docs/fetch-opencode-docs.sh`.
-- **Don't trust blog posts / third-party gists about opencode's
-  internals — verify against the actual installed binary/config.**
-  Got burned twice: a gist claimed a `qwen.txt` fallback prompt exists
-  (false, no evidence), and multiple sources disagreed on whether
-  `agent.prompt` fully replaces or just appends to the provider prompt.
-  Both got settled in minutes by actually testing against a real
-  opencode install (`opencode debug config`, writing a throwaway
-  plugin, diffing captured output) instead of reading more docs.
+- **Concrete incidents behind the "verify against the real thing" preference above** — kept here since they're specific enough to be worth remembering, even though the general rule already lives in Preferences: a third-party gist falsely claimed a `qwen.txt` fallback prompt exists (settled in minutes by testing instead of trusting the gist); sources disagreed on whether `agent.prompt` replaces or just appends to the provider prompt (settled via `opencode debug config` + a throwaway plugin); `opencode debug agent <name>` gives the resolved prompt for every built-in agent directly, without needing to trigger each one through a live chat, and confirmed `explore`/`general` can't be invoked directly via `opencode run --agent` (prints a warning, falls back to `build`) — which is exactly the mechanism that later caused the real `module-analysis` safety bug.
 - **Prefer the simplest mechanism that works, even if it means undoing
   earlier work.** First approach was a JS plugin that intercepted and
   rewrote the system prompt via `experimental.chat.system.transform`,
@@ -71,17 +64,7 @@ This is a single-person project used across multiple machines/environments (this
   resume it and demand an actual answer plus confirmation that any
   cleanup it was supposed to do actually happened. Don't take a vague
   or non-committal subagent report at face value.
-- **When you can run the real binary, do that before reading source or
-  docs — but confirm surprising findings against source too.**
-  `opencode debug agent <name>` gave the resolved prompt for every
-  built-in agent directly (no need to trigger each one through a live
-  chat, and subagents like `explore`/`general` can't even be invoked
-  directly from the CLI — `opencode run --agent explore ...` prints an
-  explicit warning and falls back to `build` rather than doing it
-  silently). Still
-  went and confirmed the `general` agent's missing prompt against
-  actual upstream source (below) once it looked like a real gap worth
-  acting on, rather than trusting the debug output alone.
+- **Confirm surprising findings against source too, not just the debug output** — the `general` agent's missing prompt (above) got double-checked against actual upstream source once it looked like a real gap worth acting on, rather than trusting `opencode debug agent` alone.
 - **opencode enforces behavior via permissions, not prompt text — this
   is why sharing one prompt across build/plan/general is safe.**
   `plan`'s "can't edit files" restriction lives entirely in its
@@ -150,6 +133,9 @@ This is a single-person project used across multiple machines/environments (this
   `.dockerignore` stays at the repo root
   (Docker looks for it at the build context root, and the context is
   the repo root even though the Dockerfile lives in `docker/`).
+  `memory/` (added 2026-09-13, after the reorg) is git-tracked project
+  memory — see its own `MEMORY.md` — kept deliberately separate from
+  this file's technical "how to work on it" focus.
 - opencode's real upstream repo is
   [anomalyco/opencode](https://github.com/anomalyco/opencode) (`dev`
   branch), npm package `opencode-ai`. Built-in agent definitions are in
@@ -206,38 +192,7 @@ This is a single-person project used across multiple machines/environments (this
   system prompt override can fix; if it recurs, check vLLM's
   `--tool-call-parser` flag on the model server.
 
-- **The models.dev catalog fetch does NOT block startup on a fully
-  offline machine — verified directly from source, not assumed**
-  (`packages/core/src/models-dev.ts` +
-  `packages/opencode/script/build.ts` in upstream, checked 2026-08-02).
-  On boot it first tries `$CACHE_DIR/models.json` (any age, no
-  staleness check); if that's missing it falls back to a snapshot
-  baked into the binary at build time via esbuild
-  `define: { OPENCODE_MODELS_DEV: generated.modelsData }` — the
-  offline single-exe build embeds this, so a brand-new install with
-  zero cache and zero network still resolves synchronously, no fetch
-  attempted. The only real network call is a background refresh every
-  60 minutes, forked (non-blocking) with failures caught and ignored
-  (`Effect.ignore`) — can't hang or crash startup, worst case is an
-  hourly failed-fetch line in the log forever on a machine that can
-  never reach the internet. Also irrelevant to our setup either way:
-  the target machine's Qwen provider is fully custom
-  OpenAI-compatible, defined by hand in `opencode.json`, not looked up
-  from this catalog. To kill the pointless hourly retry noise, set env
-  var `OPENCODE_DISABLE_MODELS_FETCH=1` on that machine (skips fetch
-  entirely, cache/snapshot-only). To point at an actual local file
-  instead of relying on the stale build-time snapshot, set
-  `OPENCODE_MODELS_PATH=<path>` too — but **both** variables are needed
-  for a true zero-network guarantee: `OPENCODE_MODELS_PATH` only
-  affects the initial `populate()` load (`loadFromDisk` reads that path
-  instead of `$CACHE_DIR/models.json`); the background 60-minute
-  refresh loop is gated purely by `OPENCODE_DISABLE_MODELS_FETCH` and
-  checks `$CACHE_DIR/models.json`'s mtime regardless of
-  `OPENCODE_MODELS_PATH`, so without the disable flag it still attempts
-  a doomed network fetch every hour even with a local path configured.
-  This repo ships `deploy/models-dev-snapshot.json` (a captured
-  `opencode models --refresh` output) for this exact purpose — see
-  SETUP.md step 3.
+- **The models.dev catalog fetch doesn't block startup on a fully offline machine** (verified from source, 2026-08-02) — a build-time snapshot is embedded in the offline binary, so a fresh install resolves synchronously with zero network. Only cosmetic fallout: an hourly failed-fetch log line forever, harmless but annoying. Silence it with `OPENCODE_DISABLE_MODELS_FETCH=1`; add `OPENCODE_MODELS_PATH=<path>` (pointing at `deploy/models-dev-snapshot.json`, see SETUP.md step 3) too if you also want fresher data than the build-time snapshot — both vars are needed together, `OPENCODE_MODELS_PATH` alone doesn't stop the hourly retry. Not that it matters much either way: this setup's Qwen provider is defined by hand in `opencode.json`, not looked up from this catalog at all.
 - Claude's own cross-session memory about this project lives at
   `~/.claude/projects/<encoded-cwd>/memory/` — the encoded-path segment
   is specific to the machine and user account the session runs under,

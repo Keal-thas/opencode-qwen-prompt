@@ -44,6 +44,8 @@ document).
   docs (`docs/opencode-docs-reference/`).
 - `CLAUDE.md` — working notes for whoever (human or agent) edits this
   repo further.
+- `memory/` — git-tracked project memory (who's behind this, what it
+  is at a glance), kept separate from CLAUDE.md's technical focus.
 - MCP work — planned as part of this workspace's scope, nothing built
   yet.
 
