@@ -3,10 +3,10 @@
 A workspace for building things on top of `opencode` (the CLI coding
 agent): a system-prompt override for a specific Qwen deployment, a
 couple of custom opencode plugins, a practical script for using
-opencode to analyze a large codebase, and (planned, not yet built) MCP
-work. The prompt override was the first piece and gives the repo its
-name, but it's one component, not the whole scope — see "Repo layout"
-below for what else lives here and why.
+opencode to analyze a large codebase, and MCP servers for LAN-internal
+ops tooling. The prompt override was the first piece and gives the repo
+its name, but it's one component, not the whole scope — see "Repo
+layout" below for what else lives here and why.
 
 The prompt override's setup instructions live in
 [SETUP.md](SETUP.md) — that file is written to be handed directly to
@@ -54,8 +54,10 @@ document).
   `tests/README.md`. Always run inside the `docker/` sandbox, never
   against the host's own node/opencode install — `./tests/run-all.sh`
   is the one entry point.
-- MCP work — planned as part of this workspace's scope, nothing built
-  yet.
+- `mcp/` — MCP servers for LAN-internal ops tooling (Oracle so far;
+  see `mcp/TODO.md` for what's next). One subdirectory per server,
+  each a standalone npm package in the same hand-rolled-against-the-
+  raw-SDK style as `plugins/`.
 
 ## Qwen prompt override
 

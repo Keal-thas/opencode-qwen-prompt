@@ -1,0 +1,8 @@
+# mcp/ backlog
+
+- [ ] **Loki** — highest priority next. Query the Loki HTTP API (`/loki/api/v1/query_range`) directly, no driver dependency needed (just `fetch`), naturally read-only since Loki's query API has no write side. Should be simpler than `oracle/` for exactly that reason.
+- [ ] Redis — official `redis/mcp-redis` exists but defaults to read/write; would need trimming to a read-only tool set (or an ACL-based read-only Redis user) before use here.
+- [ ] MySQL — several community MCP servers exist; pick one that's actually read-only at the SQL layer, not just by convention, before adopting.
+- [ ] xxl-job — no existing implementation anywhere (confirmed via [xuxueli/xxl-job#3775](https://github.com/xuxueli/xxl-job/issues/3775), open since 2025-08-11, unresolved). Would mean reading xxl-job-admin's internal AJAX endpoints directly, no public API docs to go from. Read-only (job/log status) only — never expose trigger/kill.
+
+Secondary candidates raised but not yet worth their own line above: Nacos/Apollo (config center, read-only), RocketMQ/Kafka (topic lag / consumer offsets), SkyWalking/Zipkin (trace lookup), Jenkins/GitLab CI (build status) — all fit the same "internal-ops, read-only, one server per LAN system" shape as the four above.
