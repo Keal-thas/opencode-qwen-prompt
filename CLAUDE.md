@@ -3,6 +3,15 @@
 See README.md for what the project does and its current status/open
 items. This file is about *how* to work on it.
 
+## Working with Franco
+
+Collaboration preferences, git-tracked here on purpose so they travel with the repo to any machine (this Mac, the Windows target machine, wherever it's cloned next) instead of living only in a Claude Code memory file tied to one machine/user account.
+
+- **Deliver anything needing his confirmation or unhurried reading as a file, not a chat wall of text.** Keep the chat reply itself to one or two sentences: the headline plus a pointer to the file. His attention is limited and he does not read chat output exhaustively — stated directly, more than once. This repo uses a gitignored `.local/` directory at the repo root for exactly this (scratch notes, session summaries, pending-decision write-ups); clean up a `.local/` file once its content has actually been acted on, don't let it accumulate.
+- **Test claims against the real system when the tooling exists, rather than reasoning from inspection alone.** Paid off repeatedly: whether `opencode.json` vs `.jsonc` mattered was a false alarm caught by testing live; the `module-analysis` script's `explore`-agent silently falling back to `build` (a real safety bug) was only caught by actually running it; relocating `docker-compose.yml` during the 2026-09-13 reorg silently changed Compose's project name and would have orphaned a working config volume, caught only by rebuilding and running the sandbox afterward, not by inspection. (These three examples all happened on this Mac's Docker dev sandbox — mentioned here for illustration, not because the lesson is Mac-specific; it applies to the Windows/vLLM target machine equally.)
+- **Centralize a config value in one place instead of repeating the literal across files.** He flagged this unprompted the moment he noticed the opencode-ai Docker image version hardcoded independently in both `Dockerfile`'s `ARG` default and in `docker-notes.md` prose — the concern is drift risk, not just tidiness. Historical/point-in-time facts (e.g. "verified against version X on date Y") are a different case and should stay as literal, dated records; this is about *live* config values.
+- **Don't manually wrap prose lines when writing documents for him.** He has soft-wrap on in his editor (IntelliJ) — hard-wrapping at ~72-80 characters fights with that and produces choppy short lines. Write each paragraph as one long source line. Applies to markdown/prose; code comments still wrap per normal language convention. Files written before this was said (most of this repo's docs, as of 2026-09-13) were not proactively reflowed — only fix an existing file's wrapping if asked, or while otherwise editing it anyway.
+
 ## Hard-won lessons from building this
 
 - **Don't undersell this repo's scope as just the Qwen prompt
