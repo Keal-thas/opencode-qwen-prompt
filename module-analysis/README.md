@@ -13,11 +13,14 @@ this repo's SETUP.md configures).
 
 ## What's here
 
-- `prompt-template.md` — the analysis prompt, plus the reasoning
-  behind its structure (evidence citations + confidence markers,
-  specifically to stop the model from fabricating explanations for
-  code whose intent isn't actually recoverable — see that file for
-  why this matters more than output formatting).
+- `prompt-template.md` — the analysis prompt, raw template text with two
+  placeholders: `@@MODULE_PATH@@` (the module directory being analyzed)
+  and `@@MODULES_ROOT@@` (the parent directory holding all modules, so
+  the agent has an actually-executable scope for its reverse-dependency
+  grep). This file is the single source of truth: `analyze-modules.sh`
+  reads it and substitutes the placeholders rather than carrying its
+  own copy of the prompt. See "Why the prompt looks like this" below
+  for the thinking behind its structure.
 - `analyze-modules.sh` — the driver script. Runs one `opencode run
   --agent plan` call per module subdirectory (edit/write denied by
   permission, so the model can't touch the codebase it analyzes — see
@@ -25,6 +28,38 @@ this repo's SETUP.md configures).
   agent's captured answer to the output file itself. Concurrency-
   limited and resumable — modules that already have a non-empty output
   file are skipped, so it's safe to interrupt and re-run.
+
+## Why the prompt looks like this
+
+The failure mode the prompt is built around: on messy/legacy code, a
+model asked to "explain the business logic" will confidently fabricate
+a plausible-sounding explanation for code whose actual intent isn't
+recoverable from the file alone. Formatting instructions alone don't
+fix that — the fix is forcing every claim to carry a `file:line`
+citation and an explicit confidence marker, so an ungrounded answer is
+visibly flagged rather than indistinguishable from a grounded one.
+Anything without evidence must be written as "意图不明,需人工确认"
+(or the English equivalent), never smoothed over into a made-up
+explanation.
+
+Structural choices beyond that core rule:
+
+- **Methodology and output are kept as separate sections.** The
+  working rules come first (grep-first, bounded search scope, no
+  whole-file reading by default), then each output section carries its
+  own fill-in instructions and exact table columns — no "see step 2"
+  indirection left for the model to resolve.
+- **Reverse-dependency search gets an explicit scope**
+  (`@@MODULES_ROOT@@`). "在其他模块目录里 grep" was unexecutable as
+  written — the agent was never told where sibling modules live.
+  Negative findings now must record the search that came up empty,
+  instead of just asserting absence.
+- **Worked examples** (an evidence-cited line and a `[推测]` row) are
+  included because the citation format is the one place where sloppiness
+  silently destroys the value of the whole output — a smaller model
+  needs to see the exact expected shape, not just be told the rule.
+- **Coverage honesty**: if the module is too big for one reply, list
+  what wasn't examined instead of plausibly filling it in.
 
 ## Usage
 
