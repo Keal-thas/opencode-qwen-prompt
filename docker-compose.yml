@@ -19,6 +19,17 @@ services:
       # instead of resetting every time you recreate the container.
       - opencode-config:/home/dev/.config/opencode
       - opencode-data:/home/dev/.local/share/opencode
+      # Read-only, single file (not the whole ~/.keys dir — least
+      # privilege, other keys that might live there stay out of this
+      # container entirely). docker-entrypoint.sh loads it into an env
+      # var at container start (this container's process tree only,
+      # nothing written back to the host).
+      - ${HOME}/.keys/.deepseek-key:/home/dev/.keys/.deepseek-key:ro
+    # Optional override: if DEEPSEEK_API_KEY is already set in the
+    # invoking shell, it passes through and wins over the .keys file
+    # (see docker-entrypoint.sh). Unset on the host = unset here too.
+    environment:
+      - DEEPSEEK_API_KEY
     stdin_open: true
     tty: true
     command: bash

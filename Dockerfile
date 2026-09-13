@@ -33,13 +33,22 @@ RUN npm install -g "opencode-ai@${OPENCODE_VERSION}"
 
 # Non-root user: an all-permission agent's blast radius should stay
 # inside this container's filesystem view, not run as root within it.
+# node:20-bookworm already ships a "node" user/group at 1000:1000, which
+# we don't use — drop it first so it doesn't collide with our default.
 ARG USERNAME=dev
 ARG UID=1000
 ARG GID=1000
-RUN groupadd -g "${GID}" "${USERNAME}" \
-    && useradd -m -u "${UID}" -g "${GID}" -s /bin/bash "${USERNAME}"
+RUN (userdel -r node 2>/dev/null || true) \
+    && (groupdel node 2>/dev/null || true) \
+    && groupadd -g "${GID}" "${USERNAME}" \
+    && useradd -m -u "${UID}" -g "${GID}" -s /bin/bash "${USERNAME}" \
+    && mkdir -p /home/${USERNAME}/.config/opencode /home/${USERNAME}/.local/share/opencode \
+    && chown -R ${USERNAME}:${USERNAME} /home/${USERNAME}
 
-USER ${USERNAME}
 WORKDIR /home/${USERNAME}/project
 
+# Stays root at container start so the entrypoint can fix up the named
+# volumes' ownership (see docker-entrypoint.sh) before dropping to dev.
+COPY --chmod=755 docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 CMD ["bash"]
