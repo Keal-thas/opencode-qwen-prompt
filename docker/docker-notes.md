@@ -1,16 +1,19 @@
 # Docker dev/test sandbox — working notes
 
-`Dockerfile` + `docker-compose.yml` give a local, isolated container for
-exercising this repo's prompt/plugins (`system-prompt.txt`,
-`opencode.json.example`, `hook-logger.js`, `llm-review-gate.js`, ...)
-against a real `opencode` install, without touching the host machine's
-own opencode config and without needing to trust an all-permission
-agent with anything outside the container.
+`Dockerfile` + `docker-compose.yml` (both here in `docker/`) give a
+local, isolated container for exercising this repo's prompt/plugins
+(`deploy/system-prompt.txt`, `deploy/opencode.json.example`,
+`plugins/hook-logger.js`, `plugins/llm-review-gate.js`, ...) against a
+real `opencode` install, without touching the host machine's own
+opencode config and without needing to trust an all-permission agent
+with anything outside the container.
 
 ## Launching it
 
+Run from the repo root:
+
 ```sh
-docker compose run --rm opencode-dev
+docker compose -f docker/docker-compose.yml run --rm opencode-dev
 ```
 
 Drops you into an interactive bash shell as the container's `dev` user.
@@ -20,8 +23,10 @@ one from the image every time. This is fine because nothing that
 matters lives in the container's own writable layer (see below).
 
 If you want one long-lived container to `exec` into repeatedly instead
-of a fresh one per command, use `docker compose up -d` +
-`docker compose exec opencode-dev bash` instead.
+of a fresh one per command, use `docker compose -f docker/docker-compose.yml up -d` +
+`docker compose -f docker/docker-compose.yml exec opencode-dev bash` instead.
+(The `-f` flag is only needed because this compose file isn't at the
+repo root; drop it if you `cd docker/` first.)
 
 ## What actually persists, and where
 
@@ -45,8 +50,8 @@ volume path and another outside any mount, across two separate
     down -v`, an explicit `docker volume rm`, or a full Docker Desktop
     reset — those actually delete the volumes.
 - **Also persists, different mechanism** — the project directory
-  itself: `docker-compose.yml` bind-mounts `.` (this repo on the Mac
-  host) to `/home/dev/project`. This isn't container-lifecycle
+  itself: `docker-compose.yml` bind-mounts the repo root (this repo on
+  the Mac host) to `/home/dev/project`. This isn't container-lifecycle
   persistence, it's a live two-way link to the host filesystem — edit
   on the Mac, see it immediately in the container, and vice versa.
 - **Does NOT persist** — anything else written inside the container
@@ -111,11 +116,43 @@ a hard rule, independent of how low-stakes the key is claimed to be.
 
 ## Pinned version
 
-`opencode-ai`'s version is pinned in exactly one place: `OPENCODE_VERSION`
-in `.env` at the repo root (a committed, secret-free config file - see
-its own header comment). `docker compose` loads it automatically and
-passes it into the `Dockerfile`'s `ARG OPENCODE_VERSION`. Deliberately
-not `@latest`, so a rebuild months from now reproduces the same
-environment instead of silently picking up a newer opencode. Bump it by
-editing that one line in `.env` (check `npm view opencode-ai version`
-for the current release first), then `docker compose build`.
+`opencode-ai`'s version is pinned in exactly one place:
+`OPENCODE_VERSION` in `docker/.env` (a committed, secret-free config
+file - see its own header comment). `docker compose` loads it
+automatically (it sits next to `docker-compose.yml`) and passes it into
+the `Dockerfile`'s `ARG OPENCODE_VERSION`. Deliberately not `@latest`,
+so a rebuild months from now reproduces the same environment instead of
+silently picking up a newer opencode. Bump it by editing that one line
+in `docker/.env` (check `npm view opencode-ai version` for the current
+release first), then `docker compose -f docker/docker-compose.yml build`.
+
+## Verifying the system-prompt override actually works
+
+**Status: user-confirmed working, 2026-09-13. No automated test exists
+for this** — the check below is manual, and this repo doesn't script
+it.
+
+Confirmed by hand inside this sandbox via `opencode debug config`,
+which showed `agent.build/plan/general.prompt` fully replaced with
+`deploy/system-prompt.txt`'s real content (not the built-in
+`default.txt`). To reproduce, write this into the container's
+`~/.config/opencode/opencode.jsonc` (inside the `opencode-config`
+named volume — **not** copied from `deploy/opencode.json.example`,
+which uses a relative path meant for the real target-machine
+deployment, not this sandbox):
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "agent": {
+    "build": { "prompt": "{file:/home/dev/project/deploy/system-prompt.txt}" },
+    "plan": { "prompt": "{file:/home/dev/project/deploy/system-prompt.txt}" },
+    "general": { "prompt": "{file:/home/dev/project/deploy/system-prompt.txt}" }
+  },
+  "plugin": ["/home/dev/project/deploy/system-prompt-tools.js"]
+}
+```
+
+This lives only inside the named volume, not in any tracked file — it
+will **not** survive `docker volume rm` / a fresh volume. Re-paste it
+by hand if you need to re-verify (e.g. after an opencode upgrade).

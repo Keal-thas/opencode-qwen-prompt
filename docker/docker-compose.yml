@@ -1,8 +1,17 @@
+# Pinned explicitly: Compose otherwise derives the project name from
+# this file's own directory ("docker"), which would namespace the named
+# volumes below as docker_opencode-config / docker_opencode-data instead
+# of reusing the opencode-qwen-prompt_* ones already holding real state.
+name: opencode-qwen-prompt
+
 services:
   opencode-dev:
     build:
-      context: .
-      dockerfile: Dockerfile
+      # This compose file lives in docker/, but the build needs the whole
+      # repo as context (the Dockerfile COPYs docker/docker-entrypoint.sh,
+      # and the bind mount below needs the repo root too).
+      context: ..
+      dockerfile: docker/Dockerfile
       args:
         UID: "${UID:-1000}"
         GID: "${GID:-1000}"
@@ -12,9 +21,10 @@ services:
     container_name: opencode-qwen-prompt-dev
     working_dir: /home/dev/project
     volumes:
-      # Live bind mount: edits to system-prompt.txt / the plugins on the
-      # Mac host show up immediately inside the container, no rebuild.
-      - .:/home/dev/project
+      # Live bind mount of the repo root (this compose file lives in
+      # docker/, so it's ".." from here): edits to deploy/system-prompt.txt
+      # or the plugins on the Mac host show up immediately, no rebuild.
+      - ..:/home/dev/project
       # Named volumes: survive `docker compose down` and container
       # recreation, so opencode.json (your provider config) and the
       # prompt-dump log from system-prompt-tools.js persist across runs

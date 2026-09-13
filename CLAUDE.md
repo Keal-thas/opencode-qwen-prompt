@@ -11,7 +11,7 @@ items. This file is about *how* to work on it.
   to a real reference, but cross-checking against actual source
   (`packages/core/src/flag/flag.ts`) found mismatches both ways:
   `OPENCODE_MODELS_PATH` — the var this repo's SETUP.md step 3 and
-  `models-dev-snapshot.json` depend on — is real and works but is
+  `deploy/models-dev-snapshot.json` depend on — is real and works but is
   **completely absent from the docs table**; conversely the docs table
   lists vars (`OPENCODE_AUTO_SHARE`, `OPENCODE_ENABLE_EXA`,
   `OPENCODE_DISABLE_CLAUDE_CODE`, etc.) not present in that one source
@@ -100,7 +100,7 @@ items. This file is about *how* to work on it.
   `SETUP-walkthrough.zh.md` from scratch, caught and fixed on a
   follow-up review, not while writing it originally.
 - **Don't "fix" punctuation in verbatim captured data** —
-  `captured-example-prompt.txt` has real full-width Chinese punctuation
+  `deploy/captured-example-prompt.txt` has real full-width Chinese punctuation
   inside a captured custom-instructions block, left as-is on purpose:
   it's a literal dump of what a real request actually contained, not
   prose written for this repo. Rewriting it to match the punctuation
@@ -109,6 +109,22 @@ items. This file is about *how* to work on it.
 
 ## Where things live
 
+- **This repo's own layout, post-2026-09-13 reorg** (was flat, everything
+  loose in the root): `deploy/` is the only directory that actually
+  ships to the target machine (`system-prompt.txt`,
+  `opencode.json.example`, `system-prompt-tools.js`,
+  `models-dev-snapshot.json`, `captured-example-prompt.txt`,
+  `default-prompt-original.txt`) — SETUP.md's `$SRC_DIR/...` paths all
+  point in there now. `docker/` is the local dev/test sandbox
+  (Dockerfile, docker-compose.yml, docker-entrypoint.sh,
+  docker-notes.md, `.env` — see docker-notes.md's "Pinned version"
+  section for why `.env` is committed and not secret). `plugins/` is
+  the separate `opencode-hook-plugins` npm package (hook-logger +
+  llm-review-gate), unrelated to the prompt override. `docs/` is misc
+  research notes. `module-analysis/` is its own standalone toolkit,
+  unchanged by the reorg. `.dockerignore` stays at the repo root
+  (Docker looks for it at the build context root, and the context is
+  the repo root even though the Dockerfile lives in `docker/`).
 - opencode's real upstream repo is
   [anomalyco/opencode](https://github.com/anomalyco/opencode) (`dev`
   branch), npm package `opencode-ai`. Built-in agent definitions are in
@@ -198,7 +214,7 @@ items. This file is about *how* to work on it.
   checks `$CACHE_DIR/models.json`'s mtime regardless of
   `OPENCODE_MODELS_PATH`, so without the disable flag it still attempts
   a doomed network fetch every hour even with a local path configured.
-  This repo ships `models-dev-snapshot.json` (a captured
+  This repo ships `deploy/models-dev-snapshot.json` (a captured
   `opencode models --refresh` output) for this exact purpose — see
   SETUP.md step 3.
 - This repo used to be a subfolder of an unrelated Java project

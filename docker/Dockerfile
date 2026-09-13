@@ -1,13 +1,15 @@
 # Local dev/test sandbox for this repo: a real opencode install plus
-# Node/npm/Python, so system-prompt.txt / opencode.json.example / the
-# plugins here (system-prompt-tools.js, hook-logger.js, llm-review-gate.js)
-# can be exercised against a real `opencode run` without touching the
-# host machine's own opencode config or letting an all-permission agent
-# loose on anything outside this container.
+# Node/npm/Python, so deploy/system-prompt.txt, deploy/opencode.json.example,
+# and the plugins (deploy/system-prompt-tools.js, plugins/hook-logger.js,
+# plugins/llm-review-gate.js) can be exercised against a real `opencode
+# run` without touching the host machine's own opencode config or
+# letting an all-permission agent loose on anything outside this
+# container.
 #
 # The project directory itself is NOT copied in here — see
-# docker-compose.yml, which bind-mounts the repo at build/run time so
-# host edits show up immediately without a rebuild. This image only
+# docker-compose.yml (this build's context is the repo root, one level
+# up from this Dockerfile), which bind-mounts the repo at build/run time
+# so host edits show up immediately without a rebuild. This image only
 # provides the toolchain.
 FROM node:20-bookworm
 
@@ -27,9 +29,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Pinned, not @latest, so a rebuild months from now reproduces the same
 # environment instead of silently picking up a newer opencode. The
-# actual version lives in one place: OPENCODE_VERSION in .env at the
-# repo root (docker-compose.yml passes it through as this build arg) -
-# bump it there, not here.
+# actual version lives in one place: OPENCODE_VERSION in docker/.env
+# (docker-compose.yml passes it through as this build arg) - bump it
+# there, not here.
 ARG OPENCODE_VERSION
 RUN npm install -g "opencode-ai@${OPENCODE_VERSION}"
 
@@ -51,6 +53,6 @@ WORKDIR /home/${USERNAME}/project
 
 # Stays root at container start so the entrypoint can fix up the named
 # volumes' ownership (see docker-entrypoint.sh) before dropping to dev.
-COPY --chmod=755 docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+COPY --chmod=755 docker/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 CMD ["bash"]

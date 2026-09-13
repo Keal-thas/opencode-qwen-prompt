@@ -16,7 +16,27 @@ meant to be executed literally (hence not named `SETUP.zh.md` — it's
 not a translation of the executable script, it's a different kind of
 document).
 
-## What's here
+## Repo layout
+
+Only `deploy/` actually ships to the target machine — everything else
+is tooling for working on this repo.
+
+- `deploy/` — the prompt-override payload (see below).
+- `docker/` — a local Docker sandbox for exercising this repo's
+  prompt/plugins against a real `opencode` install without touching
+  your own machine's opencode config. Not part of the deployment; see
+  `docker/docker-notes.md`.
+- `plugins/` — a separate, standalone npm package
+  (`hook-logger.js` + `llm-review-gate.js`, unrelated to the prompt
+  override).
+- `module-analysis/` — a separate, standalone toolkit for generating an
+  architecture map of a large codebase with opencode. Unrelated to the
+  prompt override; see `module-analysis/README.md`.
+- `docs/` — misc research notes.
+- `CLAUDE.md` — working notes for whoever (human or agent) edits this
+  repo further.
+
+## What's in `deploy/`
 
 - `system-prompt.txt` — the actual replacement prompt content, edit to
   taste.
@@ -34,8 +54,6 @@ document).
   `OPENCODE_MODELS_PATH` at instead of ever trying to fetch it live.
   See SETUP.md step 3. Optional — the offline build already has a
   build-time snapshot baked in as a fallback either way.
-- `CLAUDE.md` — working notes for whoever (human or agent) edits this
-  repo further.
 
 ## How the override works
 
@@ -71,7 +89,7 @@ prompt-level reason to ever spawn a subagent. Put back (reworded) as:
 delegate broad/open-ended exploration to the Task tool.
 
 `build`, `plan`, and `general` agents should get this prompt (see
-`opencode.json.example`). `compaction`, `summary`, and `title` each
+`deploy/opencode.json.example`). `compaction`, `summary`, and `title` each
 ship their own narrow, task-specific native prompt (context
 summarization, PR-style session summary, title generation
 respectively) loaded from their own file in opencode's source

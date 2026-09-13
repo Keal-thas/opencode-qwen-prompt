@@ -7,8 +7,8 @@ know the system and doesn't want to read all of it by hand first.
 
 This is a separate, standalone tool that happens to live in this repo
 alongside the system-prompt override — it doesn't depend on
-`system-prompt.txt` being installed, only on `opencode` being on PATH
-and configured with a working provider (e.g. the vLLM + Qwen setup
+`deploy/system-prompt.txt` being installed, only on `opencode` being on
+PATH and configured with a working provider (e.g. the vLLM + Qwen setup
 this repo's SETUP.md configures).
 
 ## What's here

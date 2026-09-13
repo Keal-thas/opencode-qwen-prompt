@@ -41,13 +41,13 @@ Set it as a variable — substitute the real path you found:
 
 ```bash
 SRC_DIR="/path/to/opencode-qwen-prompt-master"
-ls "$SRC_DIR"   # sanity check: should show README.md, system-prompt.txt, etc.
+ls "$SRC_DIR"   # sanity check: should show README.md, deploy/, etc.
 ```
 
 ## 1. Copy the files in
 
 ```bash
-cp "$SRC_DIR/system-prompt.txt" "$CONFIG_DIR/system-prompt.txt"
+cp "$SRC_DIR/deploy/system-prompt.txt" "$CONFIG_DIR/system-prompt.txt"
 ```
 
 ## 2. Wire it into opencode.json
@@ -61,7 +61,7 @@ Check whether `$CONFIG_DIR/opencode.json` already exists.
   opencode supports as a provider type natively.
 
   ```bash
-  cp "$SRC_DIR/opencode.json.example" "$CONFIG_DIR/opencode.json"
+  cp "$SRC_DIR/deploy/opencode.json.example" "$CONFIG_DIR/opencode.json"
   ```
 
 - **If it already exists** (most likely — your vLLM provider is
@@ -111,7 +111,7 @@ for either, they're env-var only:
   ```
 
 - **Or point it at an actual local copy** (this repo ships one at
-  `models-dev-snapshot.json`, captured from `opencode models --refresh`
+  `deploy/models-dev-snapshot.json`, captured from `opencode models --refresh`
   on a machine with internet — refresh it there periodically and
   re-transfer if you want current data). Copy it into place and set
   both variables — `OPENCODE_MODELS_PATH` alone is not enough, the
@@ -120,7 +120,7 @@ for either, they're env-var only:
   unless `OPENCODE_DISABLE_MODELS_FETCH` is also set:
 
   ```bash
-  cp "$SRC_DIR/models-dev-snapshot.json" "$CONFIG_DIR/models-dev-snapshot.json"
+  cp "$SRC_DIR/deploy/models-dev-snapshot.json" "$CONFIG_DIR/models-dev-snapshot.json"
   ```
 
   ```bash
@@ -136,7 +136,7 @@ Qwen model — you have no other way to check it worked.
 
 ```bash
 mkdir -p "$CONFIG_DIR/plugins"
-cp "$SRC_DIR/system-prompt-tools.js" "$CONFIG_DIR/plugins/system-prompt-tools.js"
+cp "$SRC_DIR/deploy/system-prompt-tools.js" "$CONFIG_DIR/plugins/system-prompt-tools.js"
 ```
 
 Add to `opencode.json`'s top level (merge, don't replace, same rule as
