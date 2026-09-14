@@ -1,15 +1,17 @@
-# Pinned explicitly: Compose otherwise derives the project name from
-# this file's own directory ("docker"), which would namespace the named
-# volumes below as docker_opencode-config / docker_opencode-data instead
-# of reusing the opencode-qwen-prompt_* ones already holding real state.
-name: opencode-qwen-prompt
+# No top-level `name:` here on purpose - it's set per invocation via the
+# COMPOSE_PROJECT_NAME env var that docker/dev.sh exports (hashed from the
+# calling worktree's absolute path), so two worktrees never collide on
+# the same project/container/network names. Always launch this file
+# through docker/dev.sh, not `docker compose` directly - see that
+# script's own comment and docs/lessons-learned.md.
 
 services:
   opencode-dev:
     build:
       # This compose file lives in docker/, but the build needs the whole
-      # repo as context (the Dockerfile COPYs docker/docker-entrypoint.sh,
-      # and the bind mount below needs the repo root too).
+      # repo as context (the Dockerfile COPYs docker/docker-entrypoint.sh
+      # and deploy/ for the plugin pre-warm step, and the bind mount below
+      # needs the repo root too).
       context: ..
       dockerfile: docker/Dockerfile
       args:
@@ -17,80 +19,66 @@ services:
         GID: "${GID:-1000}"
         # Sourced from .env - that file is the single place to bump this.
         OPENCODE_VERSION: "${OPENCODE_VERSION:?set OPENCODE_VERSION in .env}"
+    # Fixed image tag on purpose, unlike container_name below: the image
+    # is a multi-GB toolchain build that's meant to stay global/shared
+    # across every worktree (rebuilding it per worktree would be
+    # wasteful and the toolchain doesn't depend on worktree identity) -
+    # so it deliberately sits outside the per-worktree isolation this
+    # file otherwise has. Known residual risk: two worktrees building
+    # concurrently with different uncommitted Dockerfile content can
+    # race on this tag (see TODO.md) - accepted, not fixed here.
     image: opencode-qwen-prompt-dev:latest
-    container_name: opencode-qwen-prompt-dev
+    # No fixed `container_name:` though - letting Compose auto-derive it
+    # from (the now worktree-hashed) COMPOSE_PROJECT_NAME is what makes
+    # 20 concurrent `run --rm` calls in the same project never collide
+    # (verified live - see docs/lessons-learned.md), and what keeps two
+    # different worktrees from fighting over one container name.
     working_dir: /home/dev/project
     volumes:
       # Live bind mount of the repo root (this compose file lives in
       # docker/, so it's ".." from here): edits to deploy/system-prompt.txt
       # or the plugins on the Mac host show up immediately, no rebuild.
       - ..:/home/dev/project
-      # Named volumes: survive `docker compose down` and container
-      # recreation, so opencode.json (your provider config) and the
-      # prompt-dump log from system-prompt-tools.js persist across runs
-      # instead of resetting every time you recreate the container.
-      - opencode-config:/home/dev/.config/opencode
-      - opencode-data:/home/dev/.local/share/opencode
-      # Read-only, single file (not the whole ~/.keys dir — least
+      # Read-only, single file (not the whole ~/.keys dir - least
       # privilege, other keys that might live there stay out of this
       # container entirely). docker-entrypoint.sh loads it into an env
       # var at container start (this container's process tree only,
       # nothing written back to the host).
       - ${HOME}/.keys/.deepseek-key:/home/dev/.keys/.deepseek-key:ro
-    # Optional override: if DEEPSEEK_API_KEY is already set in the
-    # invoking shell, it passes through and wins over the .keys file
-    # (see docker-entrypoint.sh). Unset on the host = unset here too.
+    # No opencode-config/opencode-data named volumes anymore - opencode's
+    # config/data live entirely in the container's own writable layer and
+    # reset with it on every `--rm`. docker-entrypoint.sh (re)generates
+    # opencode.jsonc fresh on every start instead of relying on a
+    # persisted, hand-edited copy. The plugin's node_modules that used to
+    # make a cold config volume slow are pre-installed at image build
+    # time instead (see Dockerfile) - not relying on a volume for them
+    # either. See docs/lessons-learned.md for the measurements behind
+    # dropping these volumes.
     #
-    # ORACLE_* pre-wires mcp/oracle/ to the sibling `oracle` service below
-    # (matching the env var names its server.js reads) - no per-session
-    # setup needed, it's just always there and already reachable.
+    # ORACLE_* pre-wires mcp/oracle/ to the sibling `oracle` service in
+    # docker-compose.oracle.yml (matching the env var names its server.js
+    # reads) - no per-session setup needed. Reachable by service-name DNS
+    # because both containers share the oracle-net network below, even
+    # though `oracle` now lives in a separate compose project.
     environment:
       - DEEPSEEK_API_KEY
       - ORACLE_CONNECT_STRING=oracle:1521/FREEPDB1
       - ORACLE_USER=${ORACLE_APP_USER:?set ORACLE_APP_USER in .env}
       - ORACLE_PASSWORD=${ORACLE_APP_USER_PASSWORD:?set ORACLE_APP_USER_PASSWORD in .env}
-    # Deliberate tradeoff (decided 2026-09-13, after first trying opt-in
-    # via `profiles` - see git history if curious): every opencode-dev
-    # session now brings oracle up and waits for it to be healthy first,
-    # even for work that has nothing to do with it, so that nothing -
-    # human or agent - has to remember a separate manual step before
-    # mcp/oracle/ actually works. Costs a bit of idle RAM/CPU and, on a
-    # brand-new machine or volume, the DB's 1-3 minute first-time init on
-    # every `run --rm opencode-dev` until that volume is warm. Accepted
-    # as worth it over the risk of a forgotten manual start.
-    depends_on:
-      oracle:
-        condition: service_healthy
+    networks:
+      - default
+      - oracle-net
+    # No `depends_on: oracle` - depends_on can't reach across compose
+    # projects. docker/dev.sh brings oracle up (idempotently, on its own
+    # fixed shared project) before invoking this file instead.
     stdin_open: true
     tty: true
     command: bash
 
-  # Real Oracle instance backing mcp/oracle/'s tests and interactive use -
-  # see opencode-dev's `depends_on` above for why this starts automatically
-  # rather than needing `up -d oracle` on demand. Reachable from
-  # opencode-dev as `oracle:1521/FREEPDB1` via Compose's default service
-  # DNS, no extra network config needed.
-  oracle:
-    image: gvenzl/oracle-free:${ORACLE_FREE_VERSION:?set ORACLE_FREE_VERSION in .env}
-    container_name: opencode-qwen-prompt-oracle-test
-    environment:
-      - ORACLE_PASSWORD=${ORACLE_SYS_PASSWORD:?set ORACLE_SYS_PASSWORD in .env}
-      - APP_USER=${ORACLE_APP_USER:?set ORACLE_APP_USER in .env}
-      - APP_USER_PASSWORD=${ORACLE_APP_USER_PASSWORD:?set ORACLE_APP_USER_PASSWORD in .env}
-    volumes:
-      # First-time init (creating the FREE database + FREEPDB1 pluggable
-      # DB) takes 1-3 minutes - this volume means that only happens once,
-      # not on every `docker compose up`, matching the opencode-config/
-      # opencode-data reasoning above.
-      - oracle-data:/opt/oracle/oradata
-    healthcheck:
-      test: ["CMD", "healthcheck.sh"]
-      interval: 10s
-      timeout: 5s
-      retries: 20
-      start_period: 30s
-
-volumes:
-  opencode-config:
-  opencode-data:
-  oracle-data:
+networks:
+  # Owned by docker-compose.oracle.yml's own project; declared external
+  # here so this (worktree-scoped) project can join it without owning or
+  # namespacing it.
+  oracle-net:
+    name: opencode-qwen-prompt-oracle-net
+    external: true

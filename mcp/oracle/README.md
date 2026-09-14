@@ -32,10 +32,10 @@ Starts a persistent HTTP server on `ORACLE_MCP_PORT` (default `8090`), serving M
 
 ## Testing against a real Oracle instance
 
-`docker/docker-compose.yml`'s `oracle` service (`gvenzl/oracle-free` — see `docker/docker-notes.md`'s "Oracle test instance" section) comes up automatically with `opencode-dev`, no separate step needed:
+`docker/docker-compose.oracle.yml`'s `oracle` service (`gvenzl/oracle-free` — see `docker/docker-notes.md`'s "Oracle test instance" section) comes up automatically via `docker/dev.sh`, no separate step needed:
 
 ```sh
-docker compose -f docker/docker-compose.yml run --rm opencode-dev bash
+docker/dev.sh run --rm opencode-dev bash
 ```
 
 `ORACLE_CONNECT_STRING`/`ORACLE_USER`/`ORACLE_PASSWORD` are already set inside that shell — `cd mcp/oracle && npm install && npm start`, then hit `http://localhost:8090/mcp` from an MCP client or `curl`. First time on a fresh machine/volume, the `run` command itself takes 1-3 minutes before the shell opens (Oracle's first-time DB init).

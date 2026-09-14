@@ -7,11 +7,11 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
 echo "## Building the dev sandbox image (skipped if already up to date) =="
-docker compose -f docker/docker-compose.yml build
+docker/dev.sh build
 
 echo
 echo "## In-container tests: unit tests + analyze-modules.mjs (real opencode server, fake model) =="
-docker compose -f docker/docker-compose.yml run --rm opencode-dev bash tests/run-in-container.sh
+docker/dev.sh run --rm opencode-dev bash tests/run-in-container.sh
 
 echo
 echo "## Docker sandbox integration test: system-prompt override via a real opencode install =="

@@ -1,14 +1,29 @@
 #!/bin/bash
 set -e
 
-# Named volumes are created by Docker (root-owned) before this container's
-# non-root USER takes effect, so opencode's own writes under these paths
-# (config, provider auth, the prompt-dump log) would fail with EACCES.
-# Fix ownership here, every start, as root — then drop to the dev user.
-chown -R dev:dev /home/dev/.config /home/dev/.local
+# Regenerate opencode's config fresh on every start. There's no
+# persistent opencode-config volume anymore (see docker-compose.yml and
+# docs/lessons-learned.md), so nothing else would ever populate this
+# file - matches the container's own writable layer resetting on every
+# `--rm`. Mirrors SETUP.md steps 1/2/4 for the real deployment: wire
+# build/plan/general to system-prompt.txt and load the diagnostic dump
+# plugin, both pointed at the live bind-mounted project dir (not a
+# build-time copy) so host edits show up without a rebuild.
+cat > /home/dev/.config/opencode/opencode.jsonc <<'EOF'
+{
+  "$schema": "https://opencode.ai/config.json",
+  "agent": {
+    "build": { "prompt": "{file:/home/dev/project/deploy/system-prompt.txt}" },
+    "plan": { "prompt": "{file:/home/dev/project/deploy/system-prompt.txt}" },
+    "general": { "prompt": "{file:/home/dev/project/deploy/system-prompt.txt}" }
+  },
+  "plugin": ["/home/dev/project/deploy/system-prompt-tools.ts"]
+}
+EOF
+chown dev:dev /home/dev/.config/opencode/opencode.jsonc
 
 # Load provider API keys from the read-only ~/.keys mount into this
-# container's env only — never written back to the host, never logged.
+# container's env only - never written back to the host, never logged.
 # An already-set env var (passed through docker-compose.yml) wins.
 # Add another line here per provider as needed.
 if [ -z "$DEEPSEEK_API_KEY" ] && [ -f /home/dev/.keys/.deepseek-key ]; then
