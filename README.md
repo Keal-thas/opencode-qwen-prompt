@@ -12,7 +12,7 @@ A workspace for building on top of `opencode` (the CLI coding agent): a system-p
 | `docker/` | Local Docker sandbox for exercising this workspace's prompt/plugins against a real opencode install, without touching your own machine's config; see `docker/docker-notes.md` |
 | `plugins/` | Standalone npm package of custom opencode hook plugins — part of the "writing tools for opencode" side of this workspace, not the Qwen override |
 | `module-analysis/` | A script for using opencode to generate an architecture map of a large codebase — its own thing, not tied to the Qwen setup; see `module-analysis/README.md` |
-| `mcp/` | MCP servers for LAN-internal ops tooling (Oracle so far; see `mcp/TODO.md`) |
+| `mcp/` | MCP servers for LAN-internal ops tooling (Oracle and Loki so far; see `mcp/TODO.md`) |
 | `docs/` | Research notes, a local mirror of opencode's own docs, and a feature-by-feature inventory of this workspace ([docs/feature-points.md](docs/feature-points.md)) |
 | `tests/` | Automated tests covering this workspace's feature points; `./tests/run-all.sh` is the entry point — see `tests/README.md` |
 | `memory/` | Git-tracked project memory |

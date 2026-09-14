@@ -55,30 +55,36 @@ services:
     # either. See docs/lessons-learned.md for the measurements behind
     # dropping these volumes.
     #
-    # ORACLE_* pre-wires mcp/oracle/ to the sibling `oracle` service in
-    # docker-compose.oracle.yml (matching the env var names its server.js
+    # ORACLE_*/LOKI_BASE_URL pre-wire mcp/oracle/ and mcp/loki/ to the
+    # sibling `oracle`/`loki` services in docker-compose.oracle.yml/
+    # docker-compose.loki.yml (matching the env var names each server.js
     # reads) - no per-session setup needed. Reachable by service-name DNS
-    # because both containers share the oracle-net network below, even
-    # though `oracle` now lives in a separate compose project.
+    # because these containers share the oracle-net/loki-net networks
+    # below, even though those services live in separate compose projects.
     environment:
       - DEEPSEEK_API_KEY
       - ORACLE_CONNECT_STRING=oracle:1521/FREEPDB1
       - ORACLE_USER=${ORACLE_APP_USER:?set ORACLE_APP_USER in .env}
       - ORACLE_PASSWORD=${ORACLE_APP_USER_PASSWORD:?set ORACLE_APP_USER_PASSWORD in .env}
+      - LOKI_BASE_URL=http://loki:3100
     networks:
       - default
       - oracle-net
-    # No `depends_on: oracle` - depends_on can't reach across compose
-    # projects. docker/dev.sh brings oracle up (idempotently, on its own
-    # fixed shared project) before invoking this file instead.
+      - loki-net
+    # No `depends_on: oracle`/`loki` - depends_on can't reach across
+    # compose projects. docker/dev.sh brings both up (idempotently, on
+    # their own fixed shared projects) before invoking this file instead.
     stdin_open: true
     tty: true
     command: bash
 
 networks:
-  # Owned by docker-compose.oracle.yml's own project; declared external
-  # here so this (worktree-scoped) project can join it without owning or
-  # namespacing it.
+  # Owned by docker-compose.oracle.yml/docker-compose.loki.yml's own
+  # projects; declared external here so this (worktree-scoped) project
+  # can join them without owning or namespacing them.
   oracle-net:
     name: opencode-qwen-prompt-oracle-net
+    external: true
+  loki-net:
+    name: opencode-qwen-prompt-loki-net
     external: true

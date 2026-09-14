@@ -106,7 +106,22 @@ opencode 自带的免费云模型验证过.装这个插件是为了能亲眼看�
 真实的 Oracle 连接信息(`ORACLE_CONNECT_STRING`/`ORACLE_USER`/
 `ORACLE_PASSWORD`)需要问操作的人要,这个仓库不知道.
 
-## 第 6 步:验证
+## 第 6 步(可选,目前还不完整):接入 Loki MCP server
+
+跟第 5 步一样的情况,一样先跟操作的人说清楚:`mcp/loki/` 需要
+`@modelcontextprotocol/sdk` 这一个 npm 依赖(比 Oracle 少一个,不需要
+`oracledb` 那种驱动——见 `mcp/loki/README.md`),但一样是这台机器没网装
+不了,除非依赖已经提前打包好一起传过来了.
+
+同样是 `type: "remote"`,同样得有人单独启动 `npm start` 并保持运行,
+opencode 自己不管它的生死.
+
+跟 Oracle 不一样的地方:真正必须问操作的人要的只有一个
+`LOKI_BASE_URL`(内网那台 Loki 的地址).如果那台 Loki 需要账号密码或者
+租户 ID,才需要再问 `LOKI_USERNAME`/`LOKI_PASSWORD`/`LOKI_ORG_ID`——很多
+内网 Loki 是不设密码的,这几个默认不用填.
+
+## 第 7 步:验证
 
 跑一句最简单的测试请求,然后(如果装了插件)打开
 `~/.local/share/opencode/last-system-prompt.txt` 看真实发出去的内容:
@@ -115,16 +130,16 @@ opencode 自带的免费云模型验证过.装这个插件是为了能亲眼看�
 啰嗦的新手向开场白,说明 `opencode.json` 里的配置没生效,先回去检查
 JSON 有没有写错.
 
-## 第 7 步(可选):清理
+## 第 8 步(可选):清理
 
 zip 包和解压出来的文件夹用完可以删,真正长期需要留着的只有拷进配置
-目录的 `system-prompt.txt`(和装了插件的话,插件文件).删之前问一下
-操作的人要不要留着,不要自作主张删.
+目录的 `system-prompt.txt`(和装了插件、Oracle/Loki MCP server 的话,
+那些文件).删之前问一下操作的人要不要留着,不要自作主张删.
 
 ## 跑完之后要说清楚的事
 
 - `opencode.json` 之前是没有还是已经存在?是新建的还是合并进去的?
-- 第 5 步验证有没有确认新 prompt 真的生效了?如果没生效,实际看到的
+- 第 7 步验证有没有确认新 prompt 真的生效了?如果没生效,实际看到的
   输出长什么样?
 
 这两点直接决定这次部署算不算成功,不能含糊带过.

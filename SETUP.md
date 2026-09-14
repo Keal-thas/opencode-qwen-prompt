@@ -140,7 +140,40 @@ Two things need real values that this repo or an executing agent should never gu
 
 `oracle_query` is a full passthrough (no read-only enforcement — see `mcp/oracle/README.md`) by deliberate design, not an oversight; unrelated to this deployment step.
 
-## 6. Verify
+## 6. (Optional, not fully supported yet) Add the Loki MCP server
+
+Same shape as step 5, and the same offline-dependency blocker applies — **stop and tell the human running this that this step is incomplete before attempting it**: `mcp/loki/` needs `@modelcontextprotocol/sdk` present, and this machine has no internet to `npm install` it. One dependency instead of Oracle's two (no driver like `oracledb` — see `mcp/loki/README.md`'s Design section for why), but the vendoring gap is unresolved the same way (see `mcp/TODO.md`).
+
+Wired as `type: "remote"` in `opencode.json`, same reasoning as step 5 — opencode connects to an already-running HTTP endpoint. If the npm dependency has somehow already been made available, copy the directory in:
+
+```bash
+mkdir -p "$CONFIG_DIR/mcp"
+cp -r "$SRC_DIR/mcp/loki" "$CONFIG_DIR/mcp/loki"
+```
+
+Start the server with `LOKI_BASE_URL` pointing at the real internal Loki instance (see `mcp/loki/README.md`'s Configuration section — `LOKI_USERNAME`/`LOKI_PASSWORD`/`LOKI_ORG_ID` too, only if that Loki instance actually requires them; unlike Oracle's credentials, all of these are optional), and `LOKI_MCP_PORT` if the default port (`8091`) isn't free:
+
+```bash
+cd "$CONFIG_DIR/mcp/loki" && npm install && npm start
+```
+
+Leave that running, then add this to `opencode.json`'s top level (merge, don't replace) — `deploy/opencode.json.example` already carries this same block with a placeholder port, `enabled: false`:
+
+```json
+"mcp": {
+  "loki": {
+    "type": "remote",
+    "url": "http://localhost:8091/mcp",
+    "enabled": true
+  }
+}
+```
+
+One thing needs a real value that this repo or an executing agent should never guess — ask the human running this: the real `LOKI_BASE_URL` for whatever internal Loki instance this is meant to reach.
+
+`loki_query_range` is a full passthrough (any LogQL, no restriction — see `mcp/loki/README.md`) by deliberate design; unrelated to this deployment step.
+
+## 7. Verify
 
 Run a trivial request against your actual local model:
 
@@ -156,10 +189,10 @@ cat ~/.local/share/opencode/last-system-prompt.txt
 
 Confirm: the output should start with the content of `system-prompt.txt` (not the original hand-holding `default.txt` identity paragraph), and should still have an `<env>` block further down with the real working directory/platform/date. If it still looks like the original verbose default, the `agent.prompt` config wasn't picked up — check for a JSON syntax error in `opencode.json` first.
 
-## 7. Cleanup (optional)
+## 8. Cleanup (optional)
 
-`$SRC_DIR` (the extracted zip) and the original zip file can be deleted once `$CONFIG_DIR/system-prompt.txt`, `$CONFIG_DIR/plugins/system-prompt-tools.ts` (if installed), and `$CONFIG_DIR/mcp/oracle/` (if installed) are in place — those are the only files that matter going forward. Ask the human running this before deleting anything, don't assume.
+`$SRC_DIR` (the extracted zip) and the original zip file can be deleted once `$CONFIG_DIR/system-prompt.txt`, `$CONFIG_DIR/plugins/system-prompt-tools.ts` (if installed), `$CONFIG_DIR/mcp/oracle/` (if installed), and `$CONFIG_DIR/mcp/loki/` (if installed) are in place — those are the only files that matter going forward. Ask the human running this before deleting anything, don't assume.
 
 ## Report back
 
-State plainly: did `opencode.json` already exist (merged or created fresh)? Did step 6's verification confirm the custom prompt is actually being sent? If not, what did the actual output look like instead?
+State plainly: did `opencode.json` already exist (merged or created fresh)? Did step 7's verification confirm the custom prompt is actually being sent? If not, what did the actual output look like instead?

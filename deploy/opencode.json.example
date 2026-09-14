@@ -16,6 +16,11 @@
       "type": "remote",
       "url": "http://localhost:8090/mcp",
       "enabled": false
+    },
+    "loki": {
+      "type": "remote",
+      "url": "http://localhost:8091/mcp",
+      "enabled": false
     }
   }
 }
