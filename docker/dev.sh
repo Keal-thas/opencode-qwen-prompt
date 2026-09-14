@@ -13,20 +13,31 @@
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
-# oracle is a genuinely shared fixture, not per-worktree state (see
-# docker/docker-compose.oracle.yml's own header comment) - bring it up
-# idempotently before starting/creating opencode-dev, replacing the
-# in-file `depends_on` this design used to rely on (which can't reach
-# across compose projects). `--wait` blocks until its healthcheck
-# passes, same effect `depends_on: condition: service_healthy` used to
-# have. Only for `run`/`up` (the subcommands that actually start a fresh
-# opencode-dev container) - skip it for `build`, `down`, `exec`, etc.
-# Must run before COMPOSE_PROJECT_NAME is exported below - that env var
-# overrides a compose file's own top-level `name:`, and would otherwise
-# hijack this fixed-name project too.
+# oracle/loki are genuinely shared fixtures, not per-worktree state (see
+# each compose file's own header comment) - bring them up idempotently
+# before starting/creating opencode-dev, replacing the in-file
+# `depends_on` this design used to rely on (which can't reach across
+# compose projects). Only for `run`/`up` (the subcommands that actually
+# start a fresh opencode-dev container) - skip it for `build`, `down`,
+# `exec`, etc. Must run before COMPOSE_PROJECT_NAME is exported below -
+# that env var overrides a compose file's own top-level `name:`, and
+# would otherwise hijack these fixed-name projects too.
 case "${1:-}" in
   run|up)
+    # `--wait` blocks until its healthcheck passes, same effect
+    # `depends_on: condition: service_healthy` used to have.
     docker compose -f docker/docker-compose.oracle.yml up -d --wait
+
+    # loki has no Docker HEALTHCHECK to `--wait` on - its official image
+    # is distroless (no shell/wget/curl inside the container to run one -
+    # see docker-compose.loki.yml's own comment), so poll its published
+    # port from the host instead. Loki has no slow first-time-init like
+    # Oracle's DB creation, so this is normally sub-second.
+    docker compose -f docker/docker-compose.loki.yml up -d
+    for _ in $(seq 1 30); do
+      curl -sf http://127.0.0.1:3100/ready >/dev/null 2>&1 && break
+      sleep 1
+    done
     ;;
 esac
 

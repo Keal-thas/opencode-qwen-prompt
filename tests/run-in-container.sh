@@ -3,11 +3,11 @@
 # not against whatever node/bash happens to be on the host. Covers
 # everything that needs no live opencode/model server: the plugin unit
 # tests, the analyze-modules.mjs integration test (real opencode server,
-# fake model provider), and
-# the oracle MCP server test (needs a real Oracle instance - guaranteed
-# reachable here because docker/dev.sh brings the shared `oracle`
-# service up and waits for it before this container even starts, see
-# docker/docker-notes.md).
+# fake model provider), the oracle MCP server test (needs a real Oracle
+# instance), and the loki MCP server test (needs a real Loki instance) -
+# both guaranteed reachable here because docker/dev.sh brings the shared
+# `oracle`/`loki` services up before this container even starts, see
+# docker/docker-notes.md.
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
@@ -32,3 +32,7 @@ echo "== oracle MCP server integration test (real Oracle instance) =="
 # mcp/oracle/ is its own npm package - its test lives alongside it (not
 # under tests/) so Node's module resolution finds its node_modules.
 (cd mcp/oracle && npm install --no-audit --no-fund && node --test oracle.test.mjs)
+
+echo
+echo "== loki MCP server integration test (real Loki instance) =="
+(cd mcp/loki && npm install --no-audit --no-fund && node --test loki.test.mjs)

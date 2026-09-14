@@ -15,3 +15,4 @@ A feature-by-feature inventory of this workspace. Index only — details in `fea
 11. [Release automation](feature-points/11-release-automation.md) — GitHub Actions zip release on tag push. **Untested** (real release action).
 12. [Automated test suite](feature-points/12-test-suite.md) — this session's addition, covers items 1–4 and 6, plus packaging-integrity for items 3–4's shipped tarball.
 13. [Oracle MCP server](feature-points/13-oracle-mcp-server.md) — passthrough `oracle_query` tool, per-request connection, no-op audit hook. **Tested.**
+14. [Loki MCP server](feature-points/14-loki-mcp-server.md) — read-only `loki_query_range`/`loki_labels`/`loki_label_values` tools. **Tested.**
