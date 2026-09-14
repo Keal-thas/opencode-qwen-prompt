@@ -7,14 +7,25 @@
 // tests/) so Node's module resolution finds this package's own
 // node_modules - run via `node --test mcp/oracle/oracle.test.mjs` after
 // `npm install` in this directory (see tests/run-in-container.sh).
+//
+// server.js is now a persistent HTTP server (opencode connects to it as
+// type: "remote", not something it spawns - see README.md's Design
+// section), so this test spawns it itself with `node:child_process.spawn`
+// the same way a real process supervisor would, waits for its "listening"
+// line on stderr, then drives it over the real Streamable HTTP transport -
+// unlike the StdioClientTransport this replaced, `spawn` inherits the
+// parent's environment by default, so no explicit `env: process.env` is
+// needed just to make the child see ORACLE_*.
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { spawn } from "node:child_process";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
+const READY_TIMEOUT_MS = 15_000;
 
 for (const key of ["ORACLE_CONNECT_STRING", "ORACLE_USER", "ORACLE_PASSWORD"]) {
   if (!process.env[key]) {
@@ -25,24 +36,51 @@ for (const key of ["ORACLE_CONNECT_STRING", "ORACLE_USER", "ORACLE_PASSWORD"]) {
   }
 }
 
+function startServer(extraEnv) {
+  return new Promise((resolve, reject) => {
+    const child = spawn("node", [join(here, "server.js")], { env: { ...process.env, ...extraEnv } });
+
+    const timeout = setTimeout(() => {
+      child.kill();
+      reject(new Error("server.js did not report listening within the timeout"));
+    }, READY_TIMEOUT_MS);
+
+    let stderr = "";
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk;
+      if (stderr.includes("listening on")) {
+        clearTimeout(timeout);
+        resolve(child);
+      }
+    });
+    child.on("exit", (code) => {
+      clearTimeout(timeout);
+      reject(new Error(`server.js exited early (code ${code}) before listening - stderr:\n${stderr}`));
+    });
+  });
+}
+
+async function stopServer(child) {
+  child.removeAllListeners("exit");
+  child.kill();
+  await new Promise((resolve) => child.once("exit", resolve));
+}
+
+let serverProcess;
+let serverPort;
 let client;
 
 before(async () => {
-  const transport = new StdioClientTransport({
-    command: "node",
-    args: [join(here, "server.js")],
-    // StdioClientTransport does NOT inherit this process's environment by
-    // default (see docker-notes.md) - without this, server.js exits
-    // immediately for "missing connection details" even though this test
-    // process itself has them.
-    env: process.env,
-  });
+  serverPort = 8135;
+  serverProcess = await startServer({ ORACLE_MCP_PORT: String(serverPort) });
+  const transport = new StreamableHTTPClientTransport(new URL(`http://localhost:${serverPort}/mcp`));
   client = new Client({ name: "oracle-mcp-test", version: "1.0.0" }, { capabilities: {} });
   await client.connect(transport);
 });
 
 after(async () => {
   await client?.close();
+  if (serverProcess) await stopServer(serverProcess);
 });
 
 async function callOracleQuery(sql) {
@@ -93,20 +131,24 @@ test("a connection failure returns a clean error, not an MCP protocol crash", as
   // (see git history / mcp/oracle/README.md): oracledb.getConnection()
   // must be inside executeQuery()'s try block, or a connection failure
   // surfaces as a raw McpError instead of a normal {success: false} tool
-  // result.
-  const badTransport = new StdioClientTransport({
-    command: "node",
-    args: [join(here, "server.js")],
-    env: { ...process.env, ORACLE_PASSWORD: "definitely-wrong-password" },
+  // result. Runs its own server on a separate port with a bad password,
+  // since the "good" server above already has a live connection pool of
+  // its own credentials baked into its process env.
+  const badPort = serverPort + 1;
+  const badServerProcess = await startServer({
+    ORACLE_MCP_PORT: String(badPort),
+    ORACLE_PASSWORD: "definitely-wrong-password",
   });
+  const badTransport = new StreamableHTTPClientTransport(new URL(`http://localhost:${badPort}/mcp`));
   const badClient = new Client({ name: "oracle-mcp-test-bad-creds", version: "1.0.0" }, { capabilities: {} });
-  await badClient.connect(badTransport);
   try {
+    await badClient.connect(badTransport);
     const result = await badClient.callTool({ name: "oracle_query", arguments: { sql: "SELECT 1 FROM dual" } });
     const parsed = JSON.parse(result.content[0].text);
     assert.equal(parsed.success, false);
     assert.ok(parsed.error, "expected a clean error message, not a crash");
   } finally {
     await badClient.close();
+    await stopServer(badServerProcess);
   }
 });

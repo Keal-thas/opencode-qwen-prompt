@@ -136,7 +136,7 @@ Qwen model — you have no other way to check it worked.
 
 ```bash
 mkdir -p "$CONFIG_DIR/plugins"
-cp "$SRC_DIR/deploy/system-prompt-tools.js" "$CONFIG_DIR/plugins/system-prompt-tools.js"
+cp "$SRC_DIR/deploy/system-prompt-tools.ts" "$CONFIG_DIR/plugins/system-prompt-tools.ts"
 ```
 
 Add to `opencode.json`'s top level (merge, don't replace, same rule as
@@ -144,46 +144,49 @@ step 2):
 
 ```json
 "plugin": [
-  "file:///<absolute path to>/plugins/system-prompt-tools.js"
+  "file:///<absolute path to>/plugins/system-prompt-tools.ts"
 ]
 ```
 
 Use the real absolute path on this machine (Windows path with
 forward slashes and `file:///` prefix, e.g.
-`file:///C:/Users/<name>/.config/opencode/plugins/system-prompt-tools.js`) —
+`file:///C:/Users/<name>/.config/opencode/plugins/system-prompt-tools.ts`) —
 don't guess it, derive it from `$CONFIG_DIR`.
 
 ## 5. (Optional, not fully supported yet) Add the Oracle MCP server
 
-**Stop and tell the human running this that this step is incomplete before attempting it**: `mcp/oracle/` needs its npm dependencies (`@modelcontextprotocol/sdk`, `oracledb`) present, and this machine has no internet to `npm install` them. Nothing in this repo yet vendors those dependencies for offline use the way `plugins/opencode-hook-plugins-1.0.0.tgz` does for the plugins — see `mcp/TODO.md`. Do not attempt to work around this by guessing at a substitute package or fetching from an unofficial mirror; ask the human instead.
+**Stop and tell the human running this that this step is incomplete before attempting it**: `mcp/oracle/` needs its npm dependencies (`@modelcontextprotocol/sdk`, `oracledb`) present, and this machine has no internet to `npm install` them. Nothing in this repo yet vendors those dependencies for offline use the way `plugins/opencode-hook-plugins-1.0.0.tgz` does for the plugins — see `mcp/TODO.md`. Do not attempt to work around this by guessing at a substitute package or fetching from an unofficial mirror; ask the human instead. This caveat is unchanged by the `remote`-vs-`local` MCP config below — `server.js` still has to actually run on this machine with those dependencies present either way; converting opencode's config from `local` to `remote` only changes who starts the process and how opencode talks to it, not whether the dependencies need to be here.
 
-If those dependencies have somehow already been made available (e.g. a `node_modules` was vendored and transferred alongside the rest of `$SRC_DIR`), copy the whole directory in:
+Unlike step 4's plugin, the Oracle MCP server is wired as `type: "remote"` in `opencode.json` (see `mcp/oracle/README.md`'s Design section for why): opencode connects to it as an already-running HTTP endpoint rather than spawning and owning it. That means the server process has to be started independently, before opencode ever tries to use it — a persistent terminal/session running `npm start`, a process supervisor (pm2, a systemd service), or a container, whichever fits how this machine is normally kept running. opencode itself never starts, stops, or restarts it.
+
+If the npm dependencies have somehow already been made available (e.g. a `node_modules` was vendored and transferred alongside the rest of `$SRC_DIR`), copy the whole directory in:
 
 ```bash
 mkdir -p "$CONFIG_DIR/mcp"
 cp -r "$SRC_DIR/mcp/oracle" "$CONFIG_DIR/mcp/oracle"
 ```
 
-Then add this to `opencode.json`'s top level (merge, don't replace, same rule as step 2) — `deploy/opencode.json.example` already carries this same block with placeholder values, `enabled: false`:
+Start the server with the real Oracle credentials set as environment variables (`ORACLE_CONNECT_STRING`, `ORACLE_USER`, `ORACLE_PASSWORD` — see `mcp/oracle/README.md`'s Configuration section) and, optionally, `ORACLE_MCP_PORT` if the default port (`8090`) isn't free on this machine:
+
+```bash
+cd "$CONFIG_DIR/mcp/oracle" && npm install && npm start
+```
+
+Leave that running (in its own terminal, or under whatever supervisor was chosen above), then add this to `opencode.json`'s top level (merge, don't replace, same rule as step 2) — `deploy/opencode.json.example` already carries this same block with a placeholder port, `enabled: false`:
 
 ```json
 "mcp": {
   "oracle": {
-    "type": "local",
-    "command": ["node", "/<absolute path to>/mcp/oracle/server.js"],
-    "environment": {
-      "ORACLE_CONNECT_STRING": "hostname:1521/service_name",
-      "ORACLE_USER": "username",
-      "ORACLE_PASSWORD": "password"
-    },
+    "type": "remote",
+    "url": "http://localhost:8090/mcp",
     "enabled": true
   }
 }
 ```
 
-Three things need real values, none of which this repo or an executing agent should guess — ask the human running this:
-- the absolute path to `command`'s `server.js`, the same way step 4 derives the plugin's path from `$CONFIG_DIR`
-- the real `ORACLE_CONNECT_STRING`/`ORACLE_USER`/`ORACLE_PASSWORD` for whatever internal Oracle instance this is meant to reach — this repo has no way to know that
+Two things need real values, neither of which this repo or an executing agent should guess — ask the human running this:
+- the real `ORACLE_CONNECT_STRING`/`ORACLE_USER`/`ORACLE_PASSWORD` for whatever internal Oracle instance this is meant to reach, passed to the server process started above — this repo has no way to know that
+- the port, only if `ORACLE_MCP_PORT` had to be overridden because `8090` was already taken on this machine
 
 `oracle_query` is a full passthrough (no read-only enforcement — see `mcp/oracle/README.md`) by deliberate design, not an oversight; that design choice is unrelated to this deployment step.
 
@@ -212,7 +215,7 @@ syntax error in `opencode.json` first.
 
 `$SRC_DIR` (the extracted zip) and the original zip file itself can be
 deleted if you don't want them left on disk — they're not needed once
-`$CONFIG_DIR/system-prompt.txt`, `$CONFIG_DIR/plugins/system-prompt-tools.js`
+`$CONFIG_DIR/system-prompt.txt`, `$CONFIG_DIR/plugins/system-prompt-tools.ts`
 (if installed), and `$CONFIG_DIR/mcp/oracle/` (if installed) are in
 place; those are the only files that actually matter going forward.
 Ask the human running this before deleting anything they might want to
