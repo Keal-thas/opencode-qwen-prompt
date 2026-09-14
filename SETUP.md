@@ -87,11 +87,11 @@ This machine has no internet, so opencode's hourly background refresh of its mod
 
 ## 4. (Optional but recommended) Install the viewer plugin
 
-This lets you actually see what gets sent to the model — matters here since this is the first time this setup runs against the real Qwen model, and you have no other way to check it worked.
+This lets you actually see what gets sent to the model — matters here since this is the first time this setup runs against the real Qwen model, and you have no other way to check it worked. Ships as a pre-packed npm tarball (`deploy/opencode-system-prompt-tools-1.0.0.tgz`), not a raw `.ts` file — installed locally via a `file:` npm spec since this machine has no registry to fetch it from otherwise. Verified to install and load with no network round-trip at all in this repo's own docker sandbox (network deliberately cut during the test) — see `docker/docker-notes.md`'s "Plugin dependency pre-warming" section — so this should work the same way here.
 
 ```bash
 mkdir -p "$CONFIG_DIR/plugins"
-cp "$SRC_DIR/deploy/system-prompt-tools.ts" "$CONFIG_DIR/plugins/system-prompt-tools.ts"
+cp "$SRC_DIR/deploy/opencode-system-prompt-tools-1.0.0.tgz" "$CONFIG_DIR/plugins/opencode-system-prompt-tools-1.0.0.tgz"
 ```
 
 Add to `opencode.json`'s top level (merge, don't replace, same rule as
@@ -99,13 +99,35 @@ step 2):
 
 ```json
 "plugin": [
-  "file:///<absolute path to>/plugins/system-prompt-tools.ts"
+  "file:/<absolute path to>/plugins/opencode-system-prompt-tools-1.0.0.tgz"
 ]
 ```
 
-Use the real absolute path on this machine (Windows path with forward slashes and `file:///` prefix, e.g. `file:///C:/Users/<name>/.config/opencode/plugins/system-prompt-tools.ts`) — don't guess it, derive it from `$CONFIG_DIR`.
+Use the real absolute path on this machine (Windows path with forward slashes, e.g. `file:/C:/Users/<name>/.config/opencode/plugins/opencode-system-prompt-tools-1.0.0.tgz`) — don't guess it, derive it from `$CONFIG_DIR`. This single-colon `file:<path>` form (no `//` authority) is what worked against a real opencode install in this repo's Linux docker sandbox; if this machine's Windows/git-bash opencode build rejects it, try the `file://` URI form instead and note in your report which one actually worked.
 
-## 5. (Optional, not fully supported yet) Add the Oracle MCP server
+## 5. (Optional) Install the hook-logger / llm-review-gate plugins package
+
+Two more opencode plugins live in this repo, in the `plugins/` npm package — general-purpose tooling, unrelated to the Qwen prompt override itself, so skip this step entirely unless you specifically want one or both:
+
+- `hook-logger.ts` — logs essentially every opencode hook event (chat, tool execution, permission asks, compaction, etc.) as JSONL under `~/opencode-hook-output/`, for debugging/observability.
+- `llm-review-gate.ts` — gates `bash` tool calls behind an LLM safety review: before a command runs, it's sent to a hidden internal opencode session for an ALLOW/BLOCK verdict, layered on top of (not replacing) opencode's own permission config. Fails open on review errors/timeouts by default. This changes real runtime behavior (an extra hidden model call before every `bash` call) — make sure that's actually wanted before installing it.
+
+Same offline install mechanism as step 4, a separate tarball:
+
+```bash
+mkdir -p "$CONFIG_DIR/plugins"
+cp "$SRC_DIR/plugins/opencode-hook-plugins-1.0.0.tgz" "$CONFIG_DIR/plugins/opencode-hook-plugins-1.0.0.tgz"
+```
+
+```json
+"plugin": [
+  "file:/<absolute path to>/plugins/opencode-hook-plugins-1.0.0.tgz"
+]
+```
+
+Merge this into the same `plugin` array as step 4's entry (if installed) rather than replacing it — `opencode.json`'s `plugin` field accepts multiple entries. This one tarball loads both `HookLogger` and `LlmReviewGate` together; there's no way to install just one from it.
+
+## 6. (Optional, not fully supported yet) Add the Oracle MCP server
 
 **Stop and tell the human running this that this step is incomplete before attempting it**: `mcp/oracle/` needs its npm dependencies (`@modelcontextprotocol/sdk`, `oracledb`) present, and this machine has no internet to `npm install` them. Nothing here vendors those dependencies for offline use the way `plugins/opencode-hook-plugins-1.0.0.tgz` does for the plugins — see `mcp/TODO.md`. Don't work around this by guessing at a substitute package or an unofficial mirror; ask the human instead. Unchanged by the `remote`-vs-`local` MCP config below — `server.js` still has to run on this machine with those dependencies present either way; `local`→`remote` only changes who starts the process, not whether the dependencies need to be here.
 
@@ -140,7 +162,7 @@ Two things need real values that this repo or an executing agent should never gu
 
 `oracle_query` is a full passthrough (no read-only enforcement — see `mcp/oracle/README.md`) by deliberate design, not an oversight; unrelated to this deployment step.
 
-## 6. Verify
+## 7. Verify
 
 Run a trivial request against your actual local model:
 
@@ -156,10 +178,12 @@ cat ~/.local/share/opencode/last-system-prompt.txt
 
 Confirm: the output should start with the content of `system-prompt.txt` (not the original hand-holding `default.txt` identity paragraph), and should still have an `<env>` block further down with the real working directory/platform/date. If it still looks like the original verbose default, the `agent.prompt` config wasn't picked up — check for a JSON syntax error in `opencode.json` first.
 
-## 7. Cleanup (optional)
+If you installed either plugin as a `file:` tarball spec (steps 4/5) and `opencode run` errors out instead, that's more likely a bad `plugin` entry (wrong absolute path, or this machine needing the `file://` URI form instead of `file:<path>`) than a problem with the prompt override itself — check `opencode debug config` output for a `plugin_origins` entry resolving correctly before assuming the whole setup is broken.
 
-`$SRC_DIR` (the extracted zip) and the original zip file can be deleted once `$CONFIG_DIR/system-prompt.txt`, `$CONFIG_DIR/plugins/system-prompt-tools.ts` (if installed), and `$CONFIG_DIR/mcp/oracle/` (if installed) are in place — those are the only files that matter going forward. Ask the human running this before deleting anything, don't assume.
+## 8. Cleanup (optional)
+
+`$SRC_DIR` (the extracted zip) and the original zip file can be deleted once `$CONFIG_DIR/system-prompt.txt`, `$CONFIG_DIR/plugins/opencode-system-prompt-tools-1.0.0.tgz` (if installed), `$CONFIG_DIR/plugins/opencode-hook-plugins-1.0.0.tgz` (if installed), and `$CONFIG_DIR/mcp/oracle/` (if installed) are in place — those are the only files that matter going forward. Ask the human running this before deleting anything, don't assume.
 
 ## Report back
 
-State plainly: did `opencode.json` already exist (merged or created fresh)? Did step 6's verification confirm the custom prompt is actually being sent? If not, what did the actual output look like instead?
+State plainly: did `opencode.json` already exist (merged or created fresh)? Did step 7's verification confirm the custom prompt is actually being sent? If not, what did the actual output look like instead? Which `plugin` entries did you end up installing (step 4, step 5, both, neither), and did the single-colon `file:<path>` spec work as-is or did this machine need the `file://` URI form?

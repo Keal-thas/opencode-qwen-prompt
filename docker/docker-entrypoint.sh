@@ -5,10 +5,15 @@ set -e
 # persistent opencode-config volume anymore (see docker-compose.yml and
 # docs/lessons-learned.md), so nothing else would ever populate this
 # file - matches the container's own writable layer resetting on every
-# `--rm`. Mirrors SETUP.md steps 1/2/4 for the real deployment: wire
-# build/plan/general to system-prompt.txt and load the diagnostic dump
-# plugin, both pointed at the live bind-mounted project dir (not a
-# build-time copy) so host edits show up without a rebuild.
+# `--rm`. Mirrors SETUP.md steps 1/2/4 for the real deployment:
+# build/plan/general point at system-prompt.txt through the live
+# bind-mounted project dir (not a build-time copy), so host edits to
+# that file show up without a rebuild. The diagnostic dump plugin loads
+# from the committed tarball via a `file:` npm spec instead - editing
+# deploy/system-prompt-tools.ts now needs `npm pack` in deploy/ *and* an
+# image rebuild (`docker/dev.sh build`) to take effect here, since the
+# install this points at was pre-warmed into the image layer (see the
+# Dockerfile) - see docker-notes.md.
 cat > /home/dev/.config/opencode/opencode.jsonc <<'EOF'
 {
   "$schema": "https://opencode.ai/config.json",
@@ -17,7 +22,7 @@ cat > /home/dev/.config/opencode/opencode.jsonc <<'EOF'
     "plan": { "prompt": "{file:/home/dev/project/deploy/system-prompt.txt}" },
     "general": { "prompt": "{file:/home/dev/project/deploy/system-prompt.txt}" }
   },
-  "plugin": ["/home/dev/project/deploy/system-prompt-tools.ts"]
+  "plugin": ["file:/home/dev/project/deploy/opencode-system-prompt-tools-1.0.0.tgz"]
 }
 EOF
 chown dev:dev /home/dev/.config/opencode/opencode.jsonc

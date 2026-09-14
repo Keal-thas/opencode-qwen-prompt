@@ -27,7 +27,7 @@ opencode overrides the system prompt it sends to a model using its own config �
 
 - `system-prompt.txt` — the replacement prompt content, edit to taste.
 - `opencode.json.example` — the config that wires `system-prompt.txt` in.
-- `system-prompt-tools.ts` — optional plugin that dumps the fully-assembled system prompt to a local file on every request. Diagnostic only, not required.
+- `system-prompt-tools.ts` — optional plugin that dumps the fully-assembled system prompt to a local file on every request. Diagnostic only, not required. Ships as its own npm package (`package.json` + the committed `opencode-system-prompt-tools-1.0.0.tgz`), installed via a `file:` npm spec — not a raw copied file, see `docs/feature-points/02-system-prompt-tools-plugin.md`.
 - `captured-example-prompt.txt` — a real capture from a test run against opencode's own hosted `north-mini-code-free` model, kept as a reference for the plugin's dump output. Not your Qwen setup's actual prompt.
 - `models-dev-snapshot.json` — a local copy of opencode's models.dev metadata catalog, for the offline restricted machine to point `OPENCODE_MODELS_PATH` at instead of ever fetching it live. See SETUP.md step 3. Optional — the offline build already has a build-time snapshot baked in as a fallback.
 
