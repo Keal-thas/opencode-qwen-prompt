@@ -90,7 +90,23 @@ opencode 自带的免费云模型验证过.装这个插件是为了能亲眼看�
 发给模型的 prompt 长什么样",否则出了问题很难判断是 prompt 没生效还是
 模型本身的问题.
 
-## 第 5 步:验证
+## 第 5 步(可选,目前还不完整):接入 Oracle MCP server
+
+**这一步目前做不完整,遇到时先跟操作的人说清楚,别硬着头皮往下做**:
+`mcp/oracle/` 需要 `@modelcontextprotocol/sdk` 和 `oracledb` 这两个 npm
+依赖,这台机器没网装不了,仓库里也还没有像 `plugins/` 那样打包好离线
+可用的版本(见 `mcp/TODO.md`).除非依赖已经提前打包好一起传过来了,
+否则这一步先跳过.
+
+跟第 4 步的插件不一样,Oracle MCP server 在 `opencode.json` 里是
+`type: "remote"`——opencode 只是去连一个已经在跑的 HTTP 地址,不会自己
+启动这个进程.也就是说这个 server 得有人单独用 `npm start`(或者进程
+守护工具)先启动起来,并且一直保持运行,opencode 自己不管它的生死.
+
+真实的 Oracle 连接信息(`ORACLE_CONNECT_STRING`/`ORACLE_USER`/
+`ORACLE_PASSWORD`)需要问操作的人要,这个仓库不知道.
+
+## 第 6 步:验证
 
 跑一句最简单的测试请求,然后(如果装了插件)打开
 `~/.local/share/opencode/last-system-prompt.txt` 看真实发出去的内容:
@@ -99,7 +115,7 @@ opencode 自带的免费云模型验证过.装这个插件是为了能亲眼看�
 啰嗦的新手向开场白,说明 `opencode.json` 里的配置没生效,先回去检查
 JSON 有没有写错.
 
-## 第 6 步(可选):清理
+## 第 7 步(可选):清理
 
 zip 包和解压出来的文件夹用完可以删,真正长期需要留着的只有拷进配置
 目录的 `system-prompt.txt`(和装了插件的话,插件文件).删之前问一下
