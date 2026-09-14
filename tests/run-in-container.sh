@@ -5,9 +5,9 @@
 # tests, the analyze-modules.mjs integration test (real opencode server,
 # fake model provider), and
 # the oracle MCP server test (needs a real Oracle instance - guaranteed
-# reachable here because opencode-dev's docker-compose depends_on brings
-# the sibling `oracle` service up and waits for it before this container
-# even starts, see docker/docker-notes.md).
+# reachable here because docker/dev.sh brings the shared `oracle`
+# service up and waits for it before this container even starts, see
+# docker/docker-notes.md).
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 

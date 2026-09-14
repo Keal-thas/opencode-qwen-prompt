@@ -10,42 +10,30 @@
 # It still honors the "never run opencode/node against the host" rule: the
 # only thing docker itself does is start a throwaway container from the
 # already-built dev image; every actual opencode invocation happens inside
-# that container. It touches none of the sandbox's persistent named volumes
-# (opencode-config/opencode-data) - the container gets its own throwaway
-# HOME, so a real dev session's saved provider config is never at risk.
+# that container. There's no persistent config/data volume to touch either
+# way anymore (see docker/docker-notes.md) - the container's own writable
+# layer, including whatever opencode.jsonc docker-entrypoint.sh generates,
+# is wiped with it on exit.
 #
 # Requires the dev image to already be built:
-#   docker compose -f docker/docker-compose.yml build
+#   docker/dev.sh build
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 IMAGE="opencode-qwen-prompt-dev:latest"
 
-# The container's real ENTRYPOINT (docker-entrypoint.sh) chowns
-# ~/.config + ~/.local for the `dev` user then drops root via runuser -
-# we ride that as-is rather than overriding --entrypoint, so this exercises
-# the same startup path a real `docker compose run` session does. The repo
-# is bind-mounted read-only: this test never needs to write into it.
+# The container's real ENTRYPOINT (docker-entrypoint.sh) generates
+# opencode.jsonc from scratch on every start now (see docker-notes.md) -
+# we ride that as-is rather than overriding --entrypoint or hand-writing
+# a config here, so this exercises the exact same startup path a real
+# `docker/dev.sh run` session does. The repo is bind-mounted read-only:
+# this test never needs to write into it.
 if ! OUTPUT="$(docker run --rm \
   -v "$REPO_ROOT:/home/dev/project:ro" \
   "$IMAGE" \
-  bash -c '
-    set -e
-    mkdir -p ~/.config/opencode
-    cat > ~/.config/opencode/opencode.jsonc <<CONFIGEOF
-{
-  "\$schema": "https://opencode.ai/config.json",
-  "agent": {
-    "build": { "prompt": "{file:/home/dev/project/deploy/system-prompt.txt}" },
-    "plan": { "prompt": "{file:/home/dev/project/deploy/system-prompt.txt}" },
-    "general": { "prompt": "{file:/home/dev/project/deploy/system-prompt.txt}" }
-  }
-}
-CONFIGEOF
-    opencode debug config
-  ')"; then
+  opencode debug config)"; then
   echo "FAIL: could not run $IMAGE. Build it first:"
-  echo "  docker compose -f docker/docker-compose.yml build"
+  echo "  docker/dev.sh build"
   exit 1
 fi
 

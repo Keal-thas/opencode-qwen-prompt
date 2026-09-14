@@ -1,195 +1,83 @@
 # Docker dev/test sandbox — working notes
 
-`Dockerfile` + `docker-compose.yml` (both here in `docker/`) give a
-local, isolated container for exercising this repo's prompt/plugins
-(`deploy/system-prompt.txt`, `deploy/opencode.json.example`,
-`plugins/hook-logger.ts`, `plugins/llm-review-gate.ts`, ...) against a
-real `opencode` install, without touching the host machine's own
-opencode config and without needing to trust an all-permission agent
-with anything outside the container.
+`Dockerfile` + `docker-compose.yml` + `docker-compose.oracle.yml` (all in `docker/`) give a local, isolated container for exercising this repo's prompt/plugins against a real `opencode` install, without touching the host's own opencode config or trusting an all-permission agent with anything outside the container.
 
 ## Launching it
 
-Run from the repo root:
+Always go through `docker/dev.sh`, not `docker compose` directly — it isolates each worktree's Compose project so two worktrees running the sandbox at the same time never collide (see "Per-worktree isolation" below). Run from the repo root:
 
 ```sh
-docker compose -f docker/docker-compose.yml run --rm opencode-dev
+docker/dev.sh run --rm opencode-dev
 ```
 
-Drops you into an interactive bash shell as the container's `dev` user.
-Each invocation creates a brand-new container and destroys it on exit
-(`--rm`) — it is **not** restarting a stopped container, it's a fresh
-one from the image every time. This is fine because nothing that
-matters lives in the container's own writable layer (see below).
+Drops you into an interactive bash shell as the container's `dev` user. Each invocation creates a fresh container and destroys it on exit (`--rm`) — fine, since nothing that matters lives in the container's writable layer (see below).
 
-If you want one long-lived container to `exec` into repeatedly instead
-of a fresh one per command, use `docker compose -f docker/docker-compose.yml up -d` +
-`docker compose -f docker/docker-compose.yml exec opencode-dev bash` instead.
-(The `-f` flag is only needed because this compose file isn't at the
-repo root; drop it if you `cd docker/` first.)
+For one long-lived container to `exec` into repeatedly instead: `docker/dev.sh up -d`, then `docker/dev.sh exec opencode-dev bash`.
+
+## Per-worktree isolation
+
+`docker/dev.sh` hashes the calling worktree's absolute path into `COMPOSE_PROJECT_NAME` before invoking `docker compose -f docker/docker-compose.yml`, so Compose auto-derives distinct project/network/container names per worktree (`docker-compose.yml` itself has no top-level `name:` or `container_name:` — letting Compose auto-derive both is what makes this collision-free). Verified live: 20 concurrent `run --rm` calls in one project never collided on a container name, and two different worktree paths (hashed to different `COMPOSE_PROJECT_NAME`s) ran fully concurrently with no interference — see [docs/lessons-learned.md](../docs/lessons-learned.md). No locking/serialization within a single worktree either — concurrent `docker/dev.sh run` calls from the *same* worktree are safe on their own.
+
+The image tag (`opencode-qwen-prompt-dev:latest`) stays fixed and global on purpose, unlike the container name — rebuilding the multi-GB toolchain per worktree would be wasteful, and it doesn't depend on worktree identity. Known residual risk from that: see TODO.md's build-race item.
 
 ## What actually persists, and where
 
-Verified experimentally (2026-09-13): wrote a marker file under a
-volume path and another outside any mount, across two separate
-`run --rm` invocations.
-
-- **Persists** — anything under the two named-volume mount points:
-  - `~/.config/opencode/**` (volume `opencode-config`) — this is where
-    the real `opencode` binary puts `opencode.jsonc` + `.gitignore`
-    (confirmed against the actual binary, not docs — `XDG_CONFIG_HOME`
-    is unset in the container so it falls back to the Linux XDG
-    default of `$HOME/.config`).
-  - `~/.local/share/opencode/**` (volume `opencode-data`) — this is
-    where it puts `opencode.db` (+ `-shm`/`-wal`), `repos/`, and
-    `log/opencode.log`. Same XDG-default reasoning, via
-    `$HOME/.local/share`.
-  - These survive `docker compose run --rm` (container destroyed every
-    time), `docker compose down` (without `-v`), and `docker compose
-    build` (image rebuilt). They do **not** survive `docker compose
-    down -v`, an explicit `docker volume rm`, or a full Docker Desktop
-    reset — those actually delete the volumes.
-- **Also persists, different mechanism** — the project directory
-  itself: `docker-compose.yml` bind-mounts the repo root (this repo on
-  the Mac host) to `/home/dev/project`. This isn't container-lifecycle
-  persistence, it's a live two-way link to the host filesystem — edit
-  on the Mac, see it immediately in the container, and vice versa.
-- **Does NOT persist** — anything else written inside the container
-  (a file dropped in `/home/dev/` outside those two paths, an `apt-get
-  install` run by hand inside a shell, scratch state anywhere else).
-  That all lives in the container's writable layer, which is wiped the
-  moment `--rm` destroys it.
-
-The volumes live inside Docker Desktop's own VM disk image, not at a real Mac filesystem path — the path `docker volume inspect` prints is inside that VM. Don't try to touch it directly; go through `docker volume` or a throwaway container with `-v` if you need to look inside one.
+- **Nothing in `~/.config/opencode`/`~/.local/share/opencode` persists across containers anymore** — no named volumes for these (removed 2026-09-14; see docs/lessons-learned.md for why). They live entirely in the container's own writable layer and reset with it on every `--rm`. `docker-entrypoint.sh` (re)generates `opencode.jsonc` fresh on every start instead (see "Verifying the system-prompt override" below) — nothing else would ever populate it now.
+- **The project directory itself persists via a live bind mount, not container-lifecycle persistence** — `docker-compose.yml` bind-mounts the repo root to `/home/dev/project`: edits to `deploy/system-prompt.txt` or the plugins on the Mac host show up immediately, no rebuild.
+- **The plugin's `node_modules` persist because they're baked into the image itself**, not a volume — see "Plugin dependency pre-warming" below.
+- **`oracle`'s data persists in its own volume**, in its own compose project — see "Oracle test instance" below.
+- **Does NOT persist** — anything else written inside the container (files elsewhere in `/home/dev/`, an ad-hoc `apt-get install`, other scratch state) — lives in the writable layer, wiped the moment `--rm` destroys it.
 
 ## Container user
 
-The container runs as `dev` (uid/gid 1000 by default, overridable via
-the `UID`/`GID` build args in `docker-compose.yml`), not root. Has
-nothing to do with any Docker Hub / registry account — it's just a
-Linux user created in the `Dockerfile`, scoped entirely to inside the
-container.
+Runs as `dev` (uid/gid 1000 by default, overridable via the `UID`/`GID` build args) — a plain Linux user created in the `Dockerfile`, unrelated to any Docker Hub/registry account.
 
-## Two bugs fixed after the first build (2026-09-13)
+## Dockerfile gotchas, if rewriting it from scratch
 
-Worth remembering if the `Dockerfile` ever gets rewritten from scratch:
+- `node:22-bookworm` already ships a `node` user/group at uid/gid 1000 — collides with creating `dev` at the same default IDs. Fixed by dropping the unused `node` user/group first.
+- Everything the `dev` user needs to write to at runtime (`~/.config/opencode`, `~/.local/share/opencode`) is created and `chown`'d at build time now, not fixed up by the entrypoint at container start — there's no volume that would reset that ownership anymore.
 
-1. `node:22-bookworm` (was `node:20-bookworm` until the `plugins/`
-   rewrite to TypeScript needed native type-stripping support — see
-   below) already ships a `node` user/group at uid/gid
-   1000 — collides with creating `dev` at the same default IDs.
-   Fixed by dropping the unused `node` user/group first.
-2. Docker creates named volumes root-owned before the image's `USER`
-   directive takes effect, so `dev` got `EACCES` writing into
-   `~/.config/opencode` / `~/.local/share/opencode` on first run.
-   Fixed via `docker-entrypoint.sh`: container starts as root, chowns
-   those two mount points to `dev`, then drops privileges with
-   `runuser` before exec'ing the real command.
+## Plugin dependency pre-warming
+
+The `system-prompt-tools.ts` plugin's dependency tree (`~/.config/opencode/node_modules`) gets installed once at **image build time**, not on every container start. Without this, every fresh container (no more config volume - see above) would pay opencode's ~20-25s cold install of that tree on first use of a `plugin` config entry — measured, pure network wait. Paying it once at build time means every container already has it warm (measured: 0.6s vs 20-24s).
+
+The Dockerfile does this by writing a temporary `opencode.jsonc` with the plugin wired in, then running `opencode debug config` as the `dev` user (so `HOME` resolves to `/home/dev`, matching where the entrypoint-generated config will look for it at runtime) — that alone reliably triggers and completes the install, ~50-60s wall time the first time, no real provider needed. Deliberately not `opencode run` for this — that has its own, unrelated hang bug in this sandbox (see [docs/lessons-learned.md](../docs/lessons-learned.md)).
+
+If a plugin's dependencies change, rebuild the image (`docker/dev.sh build`) to re-warm — same mental model as bumping `OPENCODE_VERSION`.
 
 ## Provider API keys — loaded from `~/.keys`, never in .zshrc or the repo
 
-`docker-compose.yml` bind-mounts `${HOME}/.keys` read-only to
-`/home/dev/.keys`. `docker-entrypoint.sh` reads specific files from
-there into env vars (e.g. `DEEPSEEK_API_KEY` from
-`~/.keys/.deepseek-key`) *before* dropping to the `dev` user — scoped
-to that one container's process tree only, nothing persisted to the
-Mac's shell environment, nothing written into this repo or any git-
-tracked file. An already-set `DEEPSEEK_API_KEY` in the invoking shell
-still wins (see the `environment:` passthrough in `docker-compose.yml`)
-if you ever want a one-off override.
+`docker-compose.yml` bind-mounts `${HOME}/.keys` read-only to `/home/dev/.keys`. `docker-entrypoint.sh` reads specific files from there into env vars (e.g. `DEEPSEEK_API_KEY` from `~/.keys/.deepseek-key`) before dropping to the `dev` user — scoped to that container's process tree only, nothing persisted to the Mac's shell environment or written into this repo. An already-set `DEEPSEEK_API_KEY` in the invoking shell still wins, for a one-off override.
 
-To add a key for another provider: drop a file in `~/.keys/`
-(`chmod 700` the directory itself — a plain `700`/no-exec directory
-silently blocks all access, including your own `ls`, learned the hard
-way 2026-09-13), then add one `if [ -f ... ]; then export ...; fi`
-block to `docker-entrypoint.sh` following the existing DeepSeek one.
+To add a key for another provider: drop a file in `~/.keys/` (`chmod 700` the directory itself — a plain no-exec directory silently blocks all access, including your own `ls`), then add one `if [ -f ... ]; then export ...; fi` block to `docker-entrypoint.sh` following the existing DeepSeek one.
 
-Claude never reads these key files' contents directly (only checks
-filenames/lengths) and never writes a real key into any file — that's
-a hard rule, independent of how low-stakes the key is claimed to be.
+Claude never reads these key files' contents directly (only checks filenames/lengths) and never writes a real key into any file — a hard rule, independent of how low-stakes the key is claimed to be.
 
 ## Pinned version
 
-`opencode-ai`'s version is pinned in exactly one place:
-`OPENCODE_VERSION` in `docker/.env` (a committed, secret-free config
-file - see its own header comment). `docker compose` loads it
-automatically (it sits next to `docker-compose.yml`) and passes it into
-the `Dockerfile`'s `ARG OPENCODE_VERSION`. Deliberately not `@latest`,
-so a rebuild months from now reproduces the same environment instead of
-silently picking up a newer opencode. Bump it by editing that one line
-in `docker/.env` (check `npm view opencode-ai version` for the current
-release first), then `docker compose -f docker/docker-compose.yml build`.
+`opencode-ai`'s version is pinned in exactly one place: `OPENCODE_VERSION` in `docker/.env` (committed, secret-free — see its own header comment). `docker compose` loads it automatically and passes it into the `Dockerfile`'s `ARG OPENCODE_VERSION`. Deliberately not `@latest`, so a rebuild months from now reproduces the same environment instead of silently picking up a newer opencode. Bump by editing that one line (check `npm view opencode-ai version` first), then `docker/dev.sh build`.
 
 ## Base image Node version
 
-`FROM node:22-bookworm` — bumped from `node:20-bookworm` (2026-09-13)
-when `plugins/hook-logger.js`/`plugins/llm-review-gate.js` were rewritten
-in TypeScript against `@opencode-ai/plugin`'s `Plugin` type. Verified
-directly (not assumed): downloaded real `node-v20.18.1` and
-`node-v22.23.2` darwin-arm64 builds and ran `node --test` against the
-rewritten `.ts` plugin unit tests on each — Node 20 has no TypeScript
-support at all (not even behind a flag; `--experimental-strip-types`
-doesn't exist on it), Node 22.23.2 runs `.ts` files with type
-annotations natively, no flag needed. Node 20 ("Iron") was also at or
-past its own LTS end-of-life by the time of this bump anyway. If a
-future plugin needs TS syntax that isn't purely type-erasable (enums,
-`namespace`, parameter-property shorthand), those still need an actual
-transpile step — Node's type-stripping only erases annotations, it
-doesn't compile.
-
-This bump also broke `tests/run-in-container.sh`'s `node --test
-tests/unit` invocation in an unrelated way: on Node 20 a bare directory
-argument gets auto-scanned for test files, but on Node 22 it throws
-`ERR_MODULE_NOT_FOUND` (tries to resolve the directory path as a single
-module instead). Caught by actually running `./tests/run-all.sh`
-end-to-end against the real rebuilt image, not by reasoning about the
-Node bump in isolation. Fixed by switching that line to an explicit
-glob, `node --test tests/unit/*.test.mjs`, which works on both
-versions. Full pipeline (build + unit tests + both integration tests)
-verified green after the fix, 2026-09-13.
+`FROM node:22-bookworm` (bumped from `node:20-bookworm` 2026-09-13 for the `plugins/` TypeScript rewrite — Node 20 has no native TS support at all, 22 runs `.ts` files with type annotations natively, no flag needed). If a future plugin needs TS syntax that isn't purely type-erasable (enums, `namespace`, parameter-property shorthand), that still needs an actual transpile step — Node's type-stripping only erases annotations. Full story, and an unrelated `node --test` regression this bump surfaced: [docs/lessons-learned.md](../docs/lessons-learned.md).
 
 ## Oracle test instance, for exercising mcp/oracle/
 
-A second service in `docker-compose.yml`, `oracle` (image `gvenzl/oracle-free`, version pinned via `ORACLE_FREE_VERSION` in `docker/.env` next to `OPENCODE_VERSION` - same reasoning, same file), gives `mcp/oracle/` a real Oracle instance to run against instead of only being tested via a manually-launched throwaway container each time (which is how it was first verified, 2026-09-13 - see `docs/feature-points/13-oracle-mcp-server.md`).
+Lives in its own compose file/project, `docker/docker-compose.oracle.yml` (fixed project name `opencode-qwen-prompt-oracle`), separate from `docker-compose.yml`'s per-worktree one — it's a genuinely shared, read-mostly test fixture, not per-worktree state, and would be forced into per-worktree isolation if it stayed in the same file (see "Per-worktree isolation" above). `oracle` (image `gvenzl/oracle-free`, version pinned via `ORACLE_FREE_VERSION` in `docker/.env`, same reasoning as `OPENCODE_VERSION`) gives `mcp/oracle/` a real Oracle instance to test against.
 
-**Starts automatically, every time - no manual step, by deliberate choice.** `opencode-dev` declares `depends_on: oracle: condition: service_healthy`, so both `docker compose run --rm opencode-dev` and a bare `docker compose up -d` bring `oracle` up and wait for its healthcheck before `opencode-dev` itself starts - verified experimentally (2026-09-13) for both invocation styles. An earlier version of this gated `oracle` behind `profiles: ["oracle"]` so it stayed opt-in; that was deliberately reversed the same day after weighing it against the risk of a forgotten manual start (a human or an agent testing `mcp/oracle/` simply not remembering to bring the DB up first) - see git history for the opt-in version if useful as a reference. The accepted tradeoffs, spelled out because they're easy to forget once this reads as "just how it works":
-- idle RAM/CPU for `oracle` on every sandbox session, including ones that have nothing to do with it
-- on a brand-new machine or a wiped `oracle-data` volume, the DB's 1-3 minute first-time init blocks *every* `run --rm opencode-dev` invocation until that volume is warm, not just ones that touch `mcp/oracle/`
-- `opencode-dev` now fails to start at all if `oracle` can't become healthy (disk full, corrupted volume, bad pull) - a failure in a part of the sandbox unrelated to whatever you're actually doing can block everything
+**`docker/dev.sh` brings it up automatically before `run`/`up`, by deliberate choice** — `docker compose -f docker/docker-compose.oracle.yml up -d --wait`, idempotent, blocking until healthy. This replaces the `depends_on: condition: service_healthy` the old single-file design used; `depends_on` can't reach across separate compose projects, which is what splitting `oracle` out required. Accepted tradeoffs (weighed against the risk of a forgotten manual start):
+- idle RAM/CPU for `oracle` on every sandbox session, even ones unrelated to it
+- on a fresh machine or wiped volume, first-time DB init (1-3 min) blocks every `opencode-dev` invocation via `dev.sh`, not just ones touching `mcp/oracle/`
+- `docker/dev.sh` fails outright if `oracle` can't become healthy
 
-First-time init (creating the `FREE` database and its `FREEPDB1` pluggable DB from scratch) takes 1-3 minutes. That only happens once - the `oracle-data` named volume persists it across `docker compose down`/container recreation the same way `opencode-config`/`opencode-data` do (see "What actually persists" above). Measured (2026-09-13): once that volume is warm, a later start was already `healthy` within a few seconds, not minutes. Once started, `oracle` keeps running in the background even after a `run --rm opencode-dev` session exits (`--rm` only tears down the `opencode-dev` container it created, not services it depends on) - stop it explicitly with `docker compose stop oracle && docker compose rm -f oracle`, or `docker compose down` for everything.
+First-time init takes 1-3 minutes and only happens once — the `oracle-data` volume (in `docker-compose.oracle.yml`'s own project) persists it. Once warm, later starts are `healthy` within seconds. `oracle` keeps running after a `run --rm opencode-dev` session exits, and across every worktree — stop it explicitly with `docker compose -f docker/docker-compose.oracle.yml down`.
 
-From inside `opencode-dev`, it's reachable as `oracle:1521/FREEPDB1` via Compose's default service DNS - no extra network config, both services land on the same `opencode-qwen-prompt_default` network automatically. `opencode-dev`'s own `environment` block pre-wires `ORACLE_CONNECT_STRING`/`ORACLE_USER`/`ORACLE_PASSWORD` to point at it (matching the env var names `mcp/oracle/server.js` reads), so testing needs zero setup inside the container - `cd mcp/oracle && npm install && npm start` just works. Credentials (`ORACLE_APP_USER` / `ORACLE_APP_USER_PASSWORD` in `docker/.env`) are throwaway sandbox fixtures, not real secrets, same as `OPENCODE_VERSION` being a plain committed value - never exposed outside this docker network.
-
-Gotcha found while verifying this (2026-09-13, not a docker-compose issue): a standalone Node script using `@modelcontextprotocol/sdk`'s `StdioClientTransport` to spawn `mcp/oracle/server.js` directly does **not** inherit the parent process's environment by default - it needs an explicit `env: process.env` (or specific keys) passed in the transport config, or the spawned server sees none of the `ORACLE_*` vars and exits immediately. Plain `npm start`/`node server.js` from an interactive shell doesn't hit this (a shell-spawned child always inherits its parent's env) - it only bites a client that spawns the server itself. Worth checking whether opencode's own `local` MCP server spawning has the same non-inheriting default before wiring `mcp/oracle/` into `deploy/opencode.json.example` - its `mcp.<name>.environment` config field (see `docs/opencode-docs-reference/mcp-servers.mdx`) suggests it might.
-
-Moot for `mcp/oracle/` itself as of 2026-09-14 - it's now a `type: "remote"`/Streamable HTTP server (see `mcp/oracle/README.md`'s Design section), so nothing spawns it via `StdioClientTransport` anymore; `oracle.test.mjs` uses plain `node:child_process.spawn`, which does inherit the parent's environment by default, same as a shell-spawned child. Left here as a real gotcha about that SDK class specifically, in case a future `local`/stdio MCP server in this repo (see `mcp/TODO.md` - new servers are meant to be `remote` from the start, but this could still bite a one-off script) hits the same thing.
+Reachable from `opencode-dev` as `oracle:1521/FREEPDB1` via Compose service-name DNS, even though the two containers belong to different compose projects — `docker-compose.yml` joins `docker-compose.oracle.yml`'s network as `external: true` (both declare the same fixed network name, `opencode-qwen-prompt-oracle-net`), and Compose's service-name DNS resolution works per-network, not per-project. `opencode-dev`'s `environment` block pre-wires `ORACLE_CONNECT_STRING`/`ORACLE_USER`/`ORACLE_PASSWORD` to match, so `cd mcp/oracle && npm install && npm start` just works with zero setup. Credentials (`ORACLE_APP_USER`/`ORACLE_APP_USER_PASSWORD` in `docker/.env`) are throwaway sandbox fixtures, never exposed outside this docker network.
 
 ## Verifying the system-prompt override actually works
 
-**Status: user-confirmed working, 2026-09-13.** Automated as of 2026-09-13 in `../tests/integration/docker-prompt-override.test.sh` (run via `../tests/run-all.sh`) — it launches its own disposable container from this image and scripts the exact `opencode debug config` check below, rather than needing a human to re-paste it by hand each time.
+**Automatic now, not a manual step.** `docker-entrypoint.sh` (re)generates `~/.config/opencode/opencode.jsonc` fresh on every container start — `agent.build/plan/general.prompt` wired to `/home/dev/project/deploy/system-prompt.txt` (the bind-mounted, live file) and the diagnostic plugin loaded from `/home/dev/project/deploy/system-prompt-tools.ts`. There's no config volume to hand-edit anymore.
 
-The manual version, if you want to reproduce it by hand inside an interactive session of this sandbox: confirmed via `opencode debug config`,
-which showed `agent.build/plan/general.prompt` fully replaced with
-`deploy/system-prompt.txt`'s real content (not the built-in
-`default.txt`). To reproduce, write this into the container's
-`~/.config/opencode/opencode.jsonc` (inside the `opencode-config`
-named volume — **not** copied from `deploy/opencode.json.example`,
-which uses a relative path meant for the real target-machine
-deployment, not this sandbox):
+Automated end-to-end in `../tests/integration/docker-prompt-override.test.sh` (run via `../tests/run-all.sh`) — launches its own disposable container (via plain `docker run`, not `docker/dev.sh`, since it's testing the container's own startup path directly) and asserts `opencode debug config` resolves `agent.*.prompt` to `system-prompt.txt`'s exact content.
 
-```json
-{
-  "$schema": "https://opencode.ai/config.json",
-  "agent": {
-    "build": { "prompt": "{file:/home/dev/project/deploy/system-prompt.txt}" },
-    "plan": { "prompt": "{file:/home/dev/project/deploy/system-prompt.txt}" },
-    "general": { "prompt": "{file:/home/dev/project/deploy/system-prompt.txt}" }
-  },
-  "plugin": ["/home/dev/project/deploy/system-prompt-tools.ts"]
-}
-```
-
-This lives only inside the named volume, not in any tracked file — it
-will **not** survive `docker volume rm` / a fresh volume. Re-paste it
-by hand if you need to re-verify (e.g. after an opencode upgrade).
+To reproduce by hand inside an interactive `docker/dev.sh run --rm opencode-dev` session, just run `opencode debug config` directly — the config is already there, generated by the entrypoint before your shell even started.
