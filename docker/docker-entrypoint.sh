@@ -14,6 +14,8 @@ set -e
 # image rebuild (`docker/dev.sh build`) to take effect here, since the
 # install this points at was pre-warmed into the image layer (see the
 # Dockerfile) - see docker-notes.md.
+# TODO: import by npm package name (e.g. "opencode-system-prompt-tools") once
+# published; file: tarball above is only for the network-restricted target.
 cat > /home/dev/.config/opencode/opencode.jsonc <<'EOF'
 {
   "$schema": "https://opencode.ai/config.json",

@@ -74,6 +74,9 @@ WORKDIR /home/${USERNAME}/project
 # npm spec), the same artifact SETUP.md ships to the real offline
 # target - not the raw .ts source, so this also doubles as an offline
 # smoke test of that install path.
+# TODO: switch to bare npm package-name import (e.g. "opencode-system-prompt-tools")
+# in the plugin array once these are published; file: tarball is only for the
+# network-restricted target.
 COPY --chown=${USERNAME}:${USERNAME} deploy/opencode-system-prompt-tools-1.0.0.tgz deploy/opencode-system-prompt-tools-1.0.0.tgz
 USER ${USERNAME}
 RUN printf '{"$schema":"https://opencode.ai/config.json","plugin":["file:/home/%s/project/deploy/opencode-system-prompt-tools-1.0.0.tgz"]}' "${USERNAME}" > "/home/${USERNAME}/.config/opencode/opencode.jsonc" \
