@@ -106,18 +106,4 @@ the final summary line in stdout.
   re-analyze each group together with shared context. Not built yet.
 - Not yet run against a real target codebase — designed and reviewed,
   but unverified end-to-end.
-- `analyze-modules.mjs` (rewritten 2026-09-14, replacing the original
-  bash + `opencode run --format json` + inline-Python-log-scraping
-  driver) now uses `@opencode-ai/sdk`'s typed `client.session.prompt()`
-  against a real opencode server it starts itself, verified live
-  against both a fake local model provider and a real DeepSeek-backed
-  one — see `tests/integration/analyze-modules.test.mjs` and
-  [docs/lessons-learned.md](../docs/lessons-learned.md) for what that
-  live testing turned up (notably: the CLI's "can't run a subagent
-  directly" restriction doesn't exist at the SDK/HTTP layer, but
-  `explore`'s read-only behavior turned out to be prompt-only with no
-  permission-layer backing, so `plan` stays the default). One open
-  question this rewrite didn't chase down: `createOpencode()` defaults
-  to port 4096, same as an interactive `opencode` TUI session — running
-  this while one is already open on the same machine hasn't been
-  tested and may collide.
+- `analyze-modules.mjs` (rewritten 2026-09-14 to use `@opencode-ai/sdk`'s typed `client.session.prompt()` against a real opencode server it starts itself, replacing the original bash + `opencode run --format json` driver) — verified against both a fake local model provider and a real DeepSeek-backed one; see `tests/integration/analyze-modules.test.mjs` and [docs/lessons-learned.md](../docs/lessons-learned.md) for why `plan` stays the default agent despite `explore` fitting the read-only framing better by name. Untested: `createOpencode()` defaults to port 4096, same as an interactive `opencode` TUI session — running this alongside one on the same machine may collide.
