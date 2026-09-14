@@ -8,10 +8,56 @@ const LOKI_USERNAME = process.env.LOKI_USERNAME;
 const LOKI_PASSWORD = process.env.LOKI_PASSWORD;
 const LOKI_ORG_ID = process.env.LOKI_ORG_ID;
 const LOKI_MCP_PORT = Number(process.env.LOKI_MCP_PORT ?? "8091");
+// Only matters for the "naive" datetime case in resolveTimeParam() below -
+// Loki itself is never told about this, it only ever sees a fully-
+// qualified offset or an epoch. Defaults to Beijing time since that's
+// this deployment's actual timezone; override for a different one.
+const LOKI_DEFAULT_TZ_OFFSET = process.env.LOKI_DEFAULT_TZ_OFFSET ?? "+08:00";
 
 if (!LOKI_BASE_URL) {
   console.error("Missing Loki connection details. Set LOKI_BASE_URL.");
   process.exit(1);
+}
+
+// Computing a correct start/end by hand (an exact RFC3339 offset, or -
+// worse - a 19-digit nanosecond epoch) is real friction for whatever's
+// calling this tool, model or human. This resolves three friendlier
+// forms into whatever Loki actually accepts, so most callers never have
+// to touch epoch math at all:
+//   - "now" / "now-<duration>" (duration is <n><unit> pairs, unit one of
+//     s/m/h/d, e.g. "now-1h", "now-30m", "now-1d") - the same relative-time
+//     convention Grafana itself uses for Loki/Prometheus time ranges, not
+//     an invented one.
+//   - a bare "YYYY-MM-DDTHH:MM:SS" or "YYYY-MM-DD HH:MM:SS" with no
+//     timezone - assumed to be in LOKI_DEFAULT_TZ_OFFSET and qualified
+//     before being sent.
+// Anything else (already a full RFC3339 offset, or a bare epoch number)
+// passes straight through unchanged - both were already correct inputs
+// before this existed, and stay correct. An unrecognized shape also
+// passes straight through rather than being rejected here - Loki's own
+// parser is the final judge and returns its own clean error, same
+// full-passthrough philosophy as everywhere else in this server.
+const RELATIVE_TIME_RE = /^now(?:-((?:\d+[smhd])+))?$/;
+const DURATION_PART_RE = /(\d+)([smhd])/g;
+const NAIVE_DATETIME_RE = /^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}:\d{2}(?:\.\d+)?)$/;
+const UNIT_MS = { s: 1000, m: 60_000, h: 3_600_000, d: 86_400_000 };
+
+function resolveTimeParam(value) {
+  if (value === undefined || value === null) return value;
+
+  const relative = RELATIVE_TIME_RE.exec(value);
+  if (relative) {
+    let offsetMs = 0;
+    for (const [, amount, unit] of relative[1]?.matchAll(DURATION_PART_RE) ?? []) {
+      offsetMs += Number(amount) * UNIT_MS[unit];
+    }
+    return String((Date.now() - offsetMs) * 1_000_000);
+  }
+
+  const naive = NAIVE_DATETIME_RE.exec(value);
+  if (naive) return `${naive[1]}T${naive[2]}${LOKI_DEFAULT_TZ_OFFSET}`;
+
+  return value;
 }
 
 // Loki's query API (what every tool below hits) has no write side at all -
@@ -54,16 +100,33 @@ async function lokiFetch(path, params) {
 }
 
 async function queryRange({ query, start, end, limit, direction, step }) {
-  return lokiFetch("/loki/api/v1/query_range", { query, start, end, limit, direction, step });
+  return lokiFetch("/loki/api/v1/query_range", {
+    query,
+    start: resolveTimeParam(start),
+    end: resolveTimeParam(end),
+    limit,
+    direction,
+    step,
+  });
 }
 
 async function listLabels({ start, end }) {
-  return lokiFetch("/loki/api/v1/labels", { start, end });
+  return lokiFetch("/loki/api/v1/labels", { start: resolveTimeParam(start), end: resolveTimeParam(end) });
 }
 
 async function listLabelValues({ label, start, end }) {
-  return lokiFetch(`/loki/api/v1/label/${encodeURIComponent(label)}/values`, { start, end });
+  return lokiFetch(`/loki/api/v1/label/${encodeURIComponent(label)}/values`, {
+    start: resolveTimeParam(start),
+    end: resolveTimeParam(end),
+  });
 }
+
+const TIME_PARAM_DESCRIPTION =
+  `Accepts, in order of preference: a relative time ("now", "now-1h", "now-30m", "now-1d", ` +
+  `"now-1h30m" - Grafana's own relative-time syntax for Loki/Prometheus); a local datetime with ` +
+  `no timezone, e.g. "2026-09-15T10:00:00" or "2026-09-15 10:00:00" (assumed to be ${LOKI_DEFAULT_TZ_OFFSET}); ` +
+  `or an already-qualified absolute value (RFC3339 with an explicit offset, e.g. "2026-09-15T10:00:00+08:00", ` +
+  `or a unix epoch in seconds or nanoseconds).`;
 
 function createMcpServer() {
   const server = new Server({ name: "loki-mcp", version: "1.0.0" }, { capabilities: { tools: {} } });
@@ -78,8 +141,8 @@ function createMcpServer() {
           type: "object",
           properties: {
             query: { type: "string", description: "LogQL query, e.g. '{app=\"api\"} |= \"error\"'" },
-            start: { type: "string", description: "RFC3339 timestamp or unix epoch (seconds or ns). Optional - Loki defaults to a recent window." },
-            end: { type: "string", description: "RFC3339 timestamp or unix epoch (seconds or ns). Optional." },
+            start: { type: "string", description: TIME_PARAM_DESCRIPTION + " Optional - Loki defaults to a recent window." },
+            end: { type: "string", description: TIME_PARAM_DESCRIPTION + " Optional." },
             limit: { type: "number", description: "Max number of log lines to return. Optional - Loki defaults to 100." },
             direction: { type: "string", enum: ["forward", "backward"], description: "Optional - Loki defaults to backward (newest first)." },
             step: { type: "string", description: "Query resolution step for metric queries, e.g. '30s'. Optional." },
@@ -93,8 +156,8 @@ function createMcpServer() {
         inputSchema: {
           type: "object",
           properties: {
-            start: { type: "string", description: "RFC3339 timestamp or unix epoch. Optional." },
-            end: { type: "string", description: "RFC3339 timestamp or unix epoch. Optional." },
+            start: { type: "string", description: TIME_PARAM_DESCRIPTION + " Optional." },
+            end: { type: "string", description: TIME_PARAM_DESCRIPTION + " Optional." },
           },
         },
       },
@@ -105,8 +168,8 @@ function createMcpServer() {
           type: "object",
           properties: {
             label: { type: "string", description: "The label name to list values for, e.g. 'app' or 'namespace'." },
-            start: { type: "string", description: "RFC3339 timestamp or unix epoch. Optional." },
-            end: { type: "string", description: "RFC3339 timestamp or unix epoch. Optional." },
+            start: { type: "string", description: TIME_PARAM_DESCRIPTION + " Optional." },
+            end: { type: "string", description: TIME_PARAM_DESCRIPTION + " Optional." },
           },
           required: ["label"],
         },
