@@ -87,7 +87,7 @@ raising this costs no extra server-startup overhead), `LOG_DIR`
 denied by permission, so a prompt failure can't turn into an actual
 code edit; doesn't restrict bash, so it's not a hard sandbox against a
 model that deliberately shells out — see `analyze-modules.mjs`'s own
-comment, and [CLAUDE.md](../CLAUDE.md)'s hard-won-lessons section, for
+comment, and [docs/lessons-learned.md](../docs/lessons-learned.md), for
 why `plan` beats `explore` here despite `explore` fitting the
 read-only framing better by name).
 
@@ -112,7 +112,7 @@ the final summary line in stdout.
   against a real opencode server it starts itself, verified live
   against both a fake local model provider and a real DeepSeek-backed
   one — see `tests/integration/analyze-modules.test.mjs` and
-  [CLAUDE.md](../CLAUDE.md)'s hard-won-lessons section for what that
+  [docs/lessons-learned.md](../docs/lessons-learned.md) for what that
   live testing turned up (notably: the CLI's "can't run a subagent
   directly" restriction doesn't exist at the SDK/HTTP layer, but
   `explore`'s read-only behavior turned out to be prompt-only with no
