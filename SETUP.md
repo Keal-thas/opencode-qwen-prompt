@@ -104,7 +104,7 @@ cp "$SRC_DIR/plugins/llm-review-gate.ts" "$CONFIG_DIR/plugins/llm-review-gate.ts
 
 ## 6. (Optional) Add the Oracle MCP server
 
-`mcp/oracle/` needs its npm dependencies (`@modelcontextprotocol/sdk`, `oracledb`) installed — this machine has no public internet, but does have a working internal npm registry, so a plain `npm install` below should resolve them from there (this repo doesn't vendor them, unlike the plugins in steps 4/5, which needed no dependencies at all). If `npm install` fails here, that's a real blocker worth reporting rather than working around by guessing at a substitute package or an unofficial mirror.
+`mcp/oracle/` needs its npm dependencies (`@modelcontextprotocol/sdk`, `oracledb`) installed — this machine has no public internet, but does have a working internal npm registry (a full mirror of public npm), so a plain `npm install` below resolves them from there (this repo doesn't vendor them, unlike the plugins in steps 4/5, which needed no dependencies at all). If `npm install` unexpectedly fails here, report it rather than working around by guessing at a substitute package or an unofficial mirror.
 
 The Oracle MCP server is wired as `type: "remote"` in `opencode.json` (see `mcp/oracle/README.md`'s Design section for why): opencode connects to it as an already-running HTTP endpoint rather than spawning and owning it. The server process has to be started independently, before opencode ever tries to use it — a persistent terminal/session running `npm start`, a process supervisor, or a container, whichever fits this machine. opencode itself never starts, stops, or restarts it.
 

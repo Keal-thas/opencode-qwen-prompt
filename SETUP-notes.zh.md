@@ -46,7 +46,7 @@ cp "$SRC_DIR/plugins/llm-review-gate.ts" "$CONFIG_DIR/plugins/llm-review-gate.ts
 
 ## 6. (可选)Oracle MCP server
 
-`mcp/oracle/` 需要 `@modelcontextprotocol/sdk` 和 `oracledb` 这两个 npm 依赖——这台机器没有公网,但内网 registry 能下载第三方包,正常 `npm install` 应该就能装上(仓库没打包这两个依赖,跟第 4/5 步那种零依赖的插件不一样).如果 `npm install` 真的失败了,那是需要汇报的问题,不要瞎猜替代方案.`type: "remote"`——server 得有人自己单独 `npm start` 并保持运行,opencode 不管它的死活.真实连接信息(ORACLE_CONNECT_STRING/USER/PASSWORD)问操作的人要.
+`mcp/oracle/` 需要 `@modelcontextprotocol/sdk` 和 `oracledb` 这两个 npm 依赖——这台机器没有公网,但内网 registry 是公共 npm 的完整镜像,正常 `npm install` 就能装上(仓库没打包这两个依赖,跟第 4/5 步那种零依赖的插件不一样).如果 `npm install` 意外失败了,汇报出来,不要瞎猜替代方案.`type: "remote"`——server 得有人自己单独 `npm start` 并保持运行,opencode 不管它的死活.真实连接信息(ORACLE_CONNECT_STRING/USER/PASSWORD)问操作的人要.
 
 ## 7. (可选)Loki MCP server
 
