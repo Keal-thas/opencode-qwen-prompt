@@ -10,7 +10,7 @@ A workspace for building on top of `opencode` (the CLI coding agent): a system-p
 |---|---|
 | `deploy/` | The Qwen prompt-override payload — the piece that actually ships to the target machine |
 | `docker/` | Local Docker sandbox for exercising this workspace's prompt/plugins against a real opencode install, without touching your own machine's config; see `docker/docker-notes.md` |
-| `plugins/` | Standalone npm package of custom opencode hook plugins — part of the "writing tools for opencode" side of this workspace, not the Qwen override |
+| `plugins/` | Two standalone custom opencode hook plugins — part of the "writing tools for opencode" side of this workspace, not the Qwen override |
 | `module-analysis/` | A script for using opencode to generate an architecture map of a large codebase — its own thing, not tied to the Qwen setup; see `module-analysis/README.md` |
 | `mcp/` | MCP servers for LAN-internal ops tooling (Oracle and Loki so far; see `mcp/TODO.md`) |
 | `docs/` | Research notes, a local mirror of opencode's own docs, and a feature-by-feature inventory of this workspace ([docs/feature-points.md](docs/feature-points.md)) |
@@ -27,7 +27,7 @@ opencode overrides the system prompt it sends to a model using its own config �
 
 - `system-prompt.txt` — the replacement prompt content, edit to taste.
 - `opencode.json.example` — the config that wires `system-prompt.txt` in.
-- `system-prompt-tools.ts` — optional plugin that dumps the fully-assembled system prompt to a local file on every request. Diagnostic only, not required. Ships as its own npm package (`package.json` + the committed `opencode-system-prompt-tools-1.0.0.tgz`), installed by extracting that tarball straight into opencode's own package cache and referencing it as a bare name@version — not a raw copied file or a `file:` path, see `docs/feature-points/02-system-prompt-tools-plugin.md`.
+- `system-prompt-tools.ts` — optional plugin that dumps the fully-assembled system prompt to a local file on every request. Diagnostic only, not required. Copied as-is into opencode's local-plugin directory (`$CONFIG_DIR/plugins/`), which opencode auto-loads at startup — no package, no registry, see `docs/feature-points/02-system-prompt-tools-plugin.md`.
 - `captured-example-prompt.txt` — a real capture from a test run against opencode's own hosted `north-mini-code-free` model, kept as a reference for the plugin's dump output. Not your Qwen setup's actual prompt.
 - `models-dev-snapshot.json` — a local copy of opencode's models.dev metadata catalog, for the offline restricted machine to point `OPENCODE_MODELS_PATH` at instead of ever fetching it live. See SETUP.md step 3. Optional — the offline build already has a build-time snapshot baked in as a fallback.
 
