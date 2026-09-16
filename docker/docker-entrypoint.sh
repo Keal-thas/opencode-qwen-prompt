@@ -9,13 +9,12 @@ set -e
 # build/plan/general point at system-prompt.txt through the live
 # bind-mounted project dir (not a build-time copy), so host edits to
 # that file show up without a rebuild. The diagnostic dump plugin loads
-# from the committed tarball via a `file:` npm spec instead - editing
-# deploy/system-prompt-tools.ts now needs `npm pack` in deploy/ *and* an
-# image rebuild (`docker/dev.sh build`) to take effect here, since the
-# install this points at was pre-warmed into the image layer (see the
+# by bare "name@version" instead - editing deploy/system-prompt-tools.ts
+# now needs `npm pack` in deploy/ *and* an image rebuild
+# (`docker/dev.sh build`) to take effect here, since the actual install
+# (extracting the tarball into opencode's own package cache, keyed by
+# this exact spec string) was pre-warmed into the image layer (see the
 # Dockerfile) - see docker-notes.md.
-# TODO: import by npm package name (e.g. "opencode-system-prompt-tools") once
-# published; file: tarball above is only for the network-restricted target.
 cat > /home/dev/.config/opencode/opencode.jsonc <<'EOF'
 {
   "$schema": "https://opencode.ai/config.json",
@@ -24,7 +23,7 @@ cat > /home/dev/.config/opencode/opencode.jsonc <<'EOF'
     "plan": { "prompt": "{file:/home/dev/project/deploy/system-prompt.txt}" },
     "general": { "prompt": "{file:/home/dev/project/deploy/system-prompt.txt}" }
   },
-  "plugin": ["file:/home/dev/project/deploy/opencode-system-prompt-tools-1.0.0.tgz"]
+  "plugin": ["opencode-system-prompt-tools@1.0.0"]
 }
 EOF
 chown dev:dev /home/dev/.config/opencode/opencode.jsonc

@@ -18,10 +18,7 @@ SETUP.md 是写给**受限机器上的 opencode 自己执行**的(那台机器�
 
 ## 第 0 步:确认配置目录 + 找到解压后的源码
 
-`opencode debug paths` 这条命令会打印出 opencode 在这台机器上实际用的
-各个目录,其中 `config` 那一行就是我们要改的目标目录(一般是
-`~/.config/opencode`,但不同机器可能不一样,一切以命令的实际输出为准,
-不要凭经验假设路径).
+`opencode debug paths` 这条命令会打印出 opencode 在这台机器上实际用的各个目录,其中 `config` 那一行就是我们要改的目标目录(一般是 `~/.config/opencode`,但不同机器可能不一样,一切以命令的实际输出为准,不要凭经验假设路径)。`cache` 那一行(下面记作 `$CACHE_DIR`)第 4/5 步装插件时也要用到,一并记下来。
 
 然后要在 Desktop/Downloads 之类的地方找到解压出来的
 `opencode-qwen-prompt-master` 文件夹(GitHub 导出 zip 会自动加上分支名
@@ -90,14 +87,7 @@ opencode 自带的免费云模型验证过.装这个插件是为了能亲眼看�
 发给模型的 prompt 长什么样",否则出了问题很难判断是 prompt 没生效还是
 模型本身的问题.
 
-这个插件现在打包成了一个 npm tarball(`deploy/opencode-system-prompt-tools-1.0.0.tgz`),
-不再是直接拷一个裸 `.ts` 文件过去——通过 `opencode.json` 的 `plugin`
-字段写一个指向这个 tarball 的 `file:` 本地路径来装,跟下面第 5 步是
-同一套机制.这套"离线用 `file:` 装本地 tarball"的做法已经在仓库自己的
-docker 沙箱里断网测过,确认不联网也能装上(见 `docker/docker-notes.md`)——
-理论上这台机器也应该一样.如果在这台 Windows/git-bash 机器上写法不认
-(比如需要 `file://` 这种带双斜杠的 URI 形式,而不是单冒号的
-`file:<路径>`),换一种试试,并在最后汇报里说清楚是哪种写法真正生效了.
+这个插件现在打包成了一个 npm tarball(`deploy/opencode-system-prompt-tools-1.0.0.tgz`),不再是直接拷一个裸 `.ts` 文件过去,也不是靠 `file:` 路径——这台机器既没有 registry 也不一定有 npm/node,所以改成手工把 tarball 解包,直接扔进 opencode 自己的包缓存目录(`$CACHE_DIR/packages/opencode-system-prompt-tools@1.0.0/`),然后在 `opencode.json` 的 `plugin` 数组里写一个裸的 `"opencode-system-prompt-tools@1.0.0"`,不带任何路径,跟下面第 5 步是同一套机制。这是因为 opencode 解析 `plugin` 条目时,是按配置里写的那个字符串原样去 `~/.cache/opencode/packages/` 下找同名目录,已经存在就直接复用、不再联网——这套做法已经在仓库自己的 docker 沙箱里断网测过,确认不联网也能装上(见 `docker/docker-notes.md`),理论上这台机器也应该一样。这靠的是 opencode 这个版本自己的内部缓存行为,不是它文档承诺的东西,如果 `opencode debug config` 里看不到这个 plugin 正确解析,不要瞎猜着改,如实在汇报里说清楚看到的实际情况。
 
 ## 第 5 步(可选):装 hook-logger / llm-review-gate 插件包
 

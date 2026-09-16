@@ -1,13 +1,14 @@
 // The offline target machine has no registry to `npm install` a plugin
 // package from - each opencode-plugin package in this repo (plugins/'s
 // opencode-hook-plugins, deploy/'s opencode-system-prompt-tools) is
-// committed as a pre-packed npm tarball instead and installed via a
-// `file:` spec (see CLAUDE.md). Nothing previously checked that a
-// committed tarball's contents still match its package's source files,
-// so an edit to a plugin source file without re-running `npm pack`
-// would silently ship stale plugin code to that machine. This test
-// extracts each real committed tarball and diffs it byte-for-byte
-// against the current source.
+// committed as a pre-packed npm tarball instead, extracted by hand into
+// opencode's own package cache under a bare name@version (see
+// CLAUDE.md). Nothing previously checked that a committed tarball's
+// contents still match its package's source files, so an edit to a
+// plugin source file without re-running `npm pack` would silently ship
+// stale plugin code to that machine. This test extracts each real
+// committed tarball and diffs it byte-for-byte against the current
+// source.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
