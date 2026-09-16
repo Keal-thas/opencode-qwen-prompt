@@ -24,13 +24,9 @@ test("deploy/opencode.json.example is valid JSON wiring build/plan/general to sy
   }
 });
 
-test("deploy/system-prompt.txt is non-empty and differs from the untouched upstream default", async () => {
-  const [custom, upstream] = await Promise.all([
-    readFile(join(repoRoot, "deploy", "system-prompt.txt"), "utf-8"),
-    readFile(join(repoRoot, "deploy", "default-prompt-original.txt"), "utf-8"),
-  ]);
+test("deploy/system-prompt.txt is non-empty and doesn't contain upstream's default identity paragraph", async () => {
+  const custom = await readFile(join(repoRoot, "deploy", "system-prompt.txt"), "utf-8");
   assert.ok(custom.trim().length > 0, "system-prompt.txt should not be empty");
-  assert.notEqual(custom.trim(), upstream.trim());
   // The upstream identity paragraph is the clearest signal the override
   // didn't actually take effect - our replacement must not contain it.
   assert.ok(!custom.includes("interactive CLI tool that helps users with software engineering tasks"));

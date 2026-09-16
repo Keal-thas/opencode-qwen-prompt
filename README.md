@@ -27,7 +27,6 @@ opencode overrides the system prompt it sends to a model using its own config �
 
 - `system-prompt.txt` — the replacement prompt content, edit to taste.
 - `opencode.json.example` — the config that wires `system-prompt.txt` in.
-- `default-prompt-original.txt` — a capture of opencode's own upstream default prompt, used both as the diffing baseline this rewrite was checked against (see "Why system-prompt.txt looks the way it does" below) and by `tests/unit/config-consistency.test.mjs` to assert the override actually differs from it.
 - `models-dev-snapshot.json` — a local copy of opencode's models.dev metadata catalog, for the offline restricted machine to point `OPENCODE_MODELS_PATH` at instead of ever fetching it live. See SETUP.md step 3. Optional — the offline build already has a build-time snapshot baked in as a fallback. Generated, not hand-authored — refresh with `./deploy/fetch-models-snapshot.sh`; also listed in `.gitignore` for the same reason as `docs/opencode-docs-reference/` (kept out of broad searches, still git-tracked so it travels in the zip transfer — see that directory's own `fetch-opencode-docs.sh` header for the mechanism).
 
 ### What's in `plugins/`
