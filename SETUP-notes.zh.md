@@ -1,10 +1,10 @@
 # 部署说明(中文,对照 SETUP.md)
 
-SETUP.md 由 opencode 自己在受限机器上执行(没有网络,先把仓库打包传过去,再照着文件一步步跑).这份文件给旁边看着的人用,按相同的步骤编号说明每步在做什么,怎么判断做对了.命令本身以 SETUP.md 为准.
+SETUP.md 由 opencode 自己在受限机器上执行(没有公网,先把仓库打包传过去,再照着文件一步步跑).这份文件给旁边看着的人用,按相同的步骤编号说明每步在做什么,怎么判断做对了.命令本身以 SETUP.md 为准.
 
 ## 背景
 
-机器完全离线,仓库以 zip 形式传过来解压.目标:用 `deploy/system-prompt.txt` 替换掉 opencode 内置的默认 prompt,不破坏机器上已经配好的 vLLM provider 配置.
+机器没有公网,但内网有一个能下载(不能发布自己代码)的 npm registry.仓库以 zip 形式传过来解压(沙箱环境拖拽导出,不是真 U 盘).目标:用 `deploy/system-prompt.txt` 替换掉 opencode 内置的默认 prompt,不破坏机器上已经配好的 vLLM provider 配置.
 
 ## 0. 确认目录 + 找到源码
 
@@ -31,19 +31,26 @@ OPENCODE_DISABLE_MODELS_FETCH=1
 
 ## 4. (建议做)装查看器插件
 
-装这个插件是为了能亲眼看到真正发给模型的 prompt——这是第一次对着真 Qwen 模型跑这套配置,之前只用免费云模型验证过.做法:把 `deploy/opencode-system-prompt-tools-1.0.0.tgz` 解包进 `$CACHE_DIR/packages/opencode-system-prompt-tools@1.0.0/`,再在 opencode.json 的 plugin 数组里写裸的 `"opencode-system-prompt-tools@1.0.0"`(不带路径).这靠的是 opencode 按配置字符串在包缓存目录里找同名文件夹的内部行为,已经在 docker 沙箱断网测过.如果 `opencode debug config` 里没能正确解析这个 plugin,如实汇报看到的情况,不要瞎猜着改.
+装这个插件是为了能亲眼看到真正发给模型的 prompt——这是第一次对着真 Qwen 模型跑这套配置,之前只用免费云模型验证过.做法很简单:opencode 会自动加载 `$CONFIG_DIR/plugins/` 目录下的所有 .ts/.js 文件,不需要包,不需要 registry,也不用改 opencode.json 的 plugin 数组——直接把 `deploy/system-prompt-tools.ts` 拷过去就行,已经在 docker 沙箱里断网验证过.唯一可能碰网络的地方,是 opencode 第一次处理带插件的配置时,要装它自己的 `@opencode-ai/plugin` 支持包(装一次之后就一直是本地的,跟插件是不是本地文件无关).如果 `opencode debug config` 里这个 plugin 没解析出来,如实汇报看到的情况,不要瞎猜着改.
 
 ## 5. (可选)装 hook-logger / llm-review-gate
 
-跟 Qwen prompt 覆盖无关,不需要就跳过.`hook-logger.ts` 把 hook 事件记成 JSONL,纯调试用.`llm-review-gate.ts` 给每次 bash 调用加一道隐藏的 LLM 审核(会真的改变运行时行为,装之前确认这是想要的效果).装法同第 4 步,换成 `plugins/opencode-hook-plugins-1.0.0.tgz`,合并进同一个 plugin 数组.两个插件绑在一个包里,没法只装一个.
+跟 Qwen prompt 覆盖无关,不需要就跳过.做法跟第 4 步一样,两个是独立文件,想装哪个装哪个:
 
-## 6. (可选,尚不完整)Oracle MCP server
+```
+cp "$SRC_DIR/plugins/hook-logger.ts" "$CONFIG_DIR/plugins/hook-logger.ts"
+cp "$SRC_DIR/plugins/llm-review-gate.ts" "$CONFIG_DIR/plugins/llm-review-gate.ts"
+```
 
-`mcp/oracle/` 需要 `@modelcontextprotocol/sdk` 和 `oracledb`,这台机器装不了,仓库也还没打包好离线版(见 `mcp/TODO.md`).遇到时先跟操作的人说清楚,别硬着头皮往下做.`type: "remote"`——server 得有人自己单独 `npm start` 并保持运行,opencode 不管它的死活.真实连接信息(ORACLE_CONNECT_STRING/USER/PASSWORD)问操作的人要.
+`hook-logger.ts` 把 hook 事件记成 JSONL,纯调试用.`llm-review-gate.ts` 给每次 bash 调用加一道隐藏的 LLM 审核(会真的改变运行时行为,装之前确认这是想要的效果).
 
-## 7. (可选,尚不完整)Loki MCP server
+## 6. (可选)Oracle MCP server
 
-跟第 6 步同样情况:`mcp/loki/` 需要 `@modelcontextprotocol/sdk`,装不了就先说清楚跳过.同样 `type: "remote"`,同样要人单独启动并保持运行.只有 `LOKI_BASE_URL` 是必须问的,账号密码/租户 ID 视那台 Loki 是否要求而定.
+`mcp/oracle/` 需要 `@modelcontextprotocol/sdk` 和 `oracledb` 这两个 npm 依赖——这台机器没有公网,但内网 registry 能下载第三方包,正常 `npm install` 应该就能装上(仓库没打包这两个依赖,跟第 4/5 步那种零依赖的插件不一样).如果 `npm install` 真的失败了,那是需要汇报的问题,不要瞎猜替代方案.`type: "remote"`——server 得有人自己单独 `npm start` 并保持运行,opencode 不管它的死活.真实连接信息(ORACLE_CONNECT_STRING/USER/PASSWORD)问操作的人要.
+
+## 7. (可选)Loki MCP server
+
+跟第 6 步同样情况:`mcp/loki/` 只需要 `@modelcontextprotocol/sdk` 一个依赖(没有 oracledb 那种驱动),同样走 `npm install`.同样 `type: "remote"`,同样要人单独启动并保持运行.只有 `LOKI_BASE_URL` 是必须问的,账号密码/租户 ID 视那台 Loki 是否要求而定.
 
 ## 8. 验证
 
@@ -51,10 +58,11 @@ OPENCODE_DISABLE_MODELS_FETCH=1
 
 ## 9. (可选)清理
 
-zip 和解压出来的文件夹用完可以删,长期要留的只有 $CONFIG_DIR 里的 system-prompt.txt(装了插件/MCP server 的话,那些文件也要留着).删之前问一下操作的人要不要留,不要自作主张.
+zip 和解压出来的文件夹用完可以删,长期要留的只有 $CONFIG_DIR 里的 system-prompt.txt 和 plugins/ 目录(装了插件/MCP server 的话,那些文件也要留着).删之前问一下操作的人要不要留,不要自作主张.
 
 ## 跑完之后要说清楚的事
 
 - opencode.json 之前有没有?是新建的还是合并进去的?
 - 第 8 步验证有没有确认新 prompt 真的生效了?没生效的话实际看到的输出长什么样?
-- 第 4/5 步装了哪些插件?包缓存目录是不是按预期被 opencode 识别了?
+- 第 4/5 步装了哪些插件?`opencode debug config` 的 plugin_origins 里有没有正常解析出来?
+- 第 6/7 步的 `npm install` 有没有真的跑通(内网 registry 是否如预期可用)?
