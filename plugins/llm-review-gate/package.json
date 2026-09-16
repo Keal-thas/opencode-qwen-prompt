@@ -1,0 +1,13 @@
+{
+  "name": "opencode-llm-review-gate",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "description": "llm-review-gate.ts opencode plugin (gates bash tool calls behind an LLM safety review before they run), packed and installed locally by extracting this tarball straight into opencode's own package cache under a bare name@version (no registry, no server - see CLAUDE.md). Written in TypeScript against @opencode-ai/plugin's Plugin type. Independently installable from hook-logger.ts - not bundled together. After editing llm-review-gate.ts, run `npm pack` in this directory to regenerate the committed opencode-llm-review-gate-1.0.0.tgz - tests/unit/plugins-tarball.test.mjs fails if it drifts from source.",
+  "main": "llm-review-gate.ts",
+  "files": ["llm-review-gate.ts"],
+  "devDependencies": {
+    "@opencode-ai/plugin": "^1.0.0",
+    "@types/node": "^22.0.0"
+  }
+}

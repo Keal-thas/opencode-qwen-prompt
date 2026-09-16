@@ -1,4 +1,4 @@
-// plugins/system-prompt-tools.ts computes its dump path from os.homedir()
+// plugins/system-prompt-tools/system-prompt-tools.ts computes its dump path from os.homedir()
 // at module-load time, so HOME must be pointed at a scratch dir *before*
 // the module is imported.
 import { test, after } from "node:test";
@@ -10,7 +10,7 @@ import { join } from "node:path";
 const fakeHome = await mkdtemp(join(tmpdir(), "system-prompt-tools-test-"));
 process.env.HOME = fakeHome;
 
-const { SystemPromptTools } = await import("../../plugins/system-prompt-tools.ts");
+const { SystemPromptTools } = await import("../../plugins/system-prompt-tools/system-prompt-tools.ts");
 const dumpFile = join(fakeHome, ".local", "share", "opencode", "last-system-prompt.txt");
 
 after(() => rm(fakeHome, { recursive: true, force: true }));

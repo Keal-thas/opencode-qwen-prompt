@@ -10,11 +10,13 @@ Run:
 opencode debug paths
 ```
 
-Use the `config` line from the output for all paths below (normally `~/.config/opencode` — substitute it everywhere `$CONFIG_DIR` appears if this machine differs). Set it as a variable for the rest of this session:
+Use the `config` line from the output for all paths below (normally `~/.config/opencode` — substitute it everywhere `$CONFIG_DIR` appears if this machine differs). Also grab the `cache` line — steps 4/5 need it too. Set both as variables for the rest of this session:
 
 ```bash
 CONFIG_DIR="$(opencode debug paths | awk '/^config/ {print $2}')"
+CACHE_DIR="$(opencode debug paths | awk '/^cache/ {print $2}')"
 echo "$CONFIG_DIR"
+echo "$CACHE_DIR"
 ```
 
 Now find where the extracted zip landed. It was downloaded from GitHub as `opencode-qwen-prompt-master.zip` and extracted somewhere on this machine (Desktop, Downloads, wherever it was transferred to) — the extracted folder is named `opencode-qwen-prompt-master` (GitHub's zip export appends the branch name) unless renamed. Locate it, e.g.:
@@ -81,26 +83,50 @@ OPENCODE_DISABLE_MODELS_FETCH=1
 
 ## 4. (Optional but recommended) Install the viewer plugin
 
-This lets you actually see what gets sent to the model — matters here since this is the first time this setup runs against the real Qwen model, and you have no other way to check it worked. opencode auto-loads any `.ts`/`.js` file placed in `$CONFIG_DIR/plugins/` at startup — no package, no registry, no `plugin` config entry needed at all (confirmed live, with outbound network cut, in this repo's own docker sandbox — see `docker/docker-notes.md`'s "Plugin dependency pre-warming" section):
+This lets you actually see what gets sent to the model — matters here since this is the first time this setup runs against the real Qwen model, and you have no other way to check it worked. Ships as a pre-packed npm tarball (`plugins/system-prompt-tools/opencode-system-prompt-tools-1.0.0.tgz`), not a raw `.ts` file. This machine has no public internet to fetch it from — extract the tarball by hand straight into opencode's own package cache, under the exact `name@version` you'll reference in config. opencode resolves a bare `plugin` spec by looking for `$CACHE_DIR/packages/<that spec>/` and skips installing anything if it's already there — confirmed live, with outbound network cut, in this repo's own docker sandbox (see `docker/docker-notes.md`'s "Plugin dependency pre-warming" section) — so pre-seeding it here should work the same way:
 
 ```bash
-mkdir -p "$CONFIG_DIR/plugins"
-cp "$SRC_DIR/plugins/system-prompt-tools.ts" "$CONFIG_DIR/plugins/system-prompt-tools.ts"
+mkdir -p "$CACHE_DIR/packages/opencode-system-prompt-tools@1.0.0/node_modules/opencode-system-prompt-tools"
+tar xzf "$SRC_DIR/plugins/system-prompt-tools/opencode-system-prompt-tools-1.0.0.tgz" \
+  -C "$CACHE_DIR/packages/opencode-system-prompt-tools@1.0.0/node_modules/opencode-system-prompt-tools" \
+  --strip-components=1
 ```
 
-The only network opencode ever needs for a plugin-touching config is a one-time install of its own `@opencode-ai/plugin` support package into `$CONFIG_DIR/node_modules` the first time it ever processes one — after that (or if this machine's opencode install already did this once for any reason), it's instant, local file or not. If `opencode debug config` doesn't show a `plugin_origins` entry resolving cleanly for this file, report exactly what you saw instead of guessing a fix.
+Add to `opencode.json`'s top level (merge, don't replace, same rule as
+step 2) — a bare package name and version, no path at all:
+
+```json
+"plugin": ["opencode-system-prompt-tools@1.0.0"]
+```
+
+This relies on opencode's own internal package-cache behavior, not something its docs promise — if `opencode debug config` doesn't show a `plugin_origins` entry resolving cleanly for this spec, don't assume the cache layout above still matches this machine's opencode build; report exactly what you saw instead of guessing a fix.
 
 ## 5. (Optional) Install the hook-logger / llm-review-gate plugins
 
-Two more opencode plugins live in this repo, in `plugins/` — general-purpose tooling, unrelated to the Qwen prompt override itself, so skip this step entirely unless you specifically want one or both. Same mechanism as step 4, and since each is a standalone file you can install either one independently:
+Two more opencode plugins live in this repo, in `plugins/` — general-purpose tooling, unrelated to the Qwen prompt override itself, so skip this step entirely unless you specifically want one or both. Each ships as its own separate tarball, so you can install either one independently:
 
 - `hook-logger.ts` — logs essentially every opencode hook event (chat, tool execution, permission asks, compaction, etc.) as JSONL under `~/opencode-hook-output/`, for debugging/observability.
 - `llm-review-gate.ts` — gates `bash` tool calls behind an LLM safety review: before a command runs, it's sent to a hidden internal opencode session for an ALLOW/BLOCK verdict, layered on top of (not replacing) opencode's own permission config. Fails open on review errors/timeouts by default. This changes real runtime behavior (an extra hidden model call before every `bash` call) — make sure that's actually wanted before installing it.
 
+Same offline install mechanism as step 4, a separate tarball for each:
+
 ```bash
-cp "$SRC_DIR/plugins/hook-logger.ts" "$CONFIG_DIR/plugins/hook-logger.ts"          # observability
-cp "$SRC_DIR/plugins/llm-review-gate.ts" "$CONFIG_DIR/plugins/llm-review-gate.ts"  # bash safety review
+mkdir -p "$CACHE_DIR/packages/opencode-hook-logger@1.0.0/node_modules/opencode-hook-logger"
+tar xzf "$SRC_DIR/plugins/hook-logger/opencode-hook-logger-1.0.0.tgz" \
+  -C "$CACHE_DIR/packages/opencode-hook-logger@1.0.0/node_modules/opencode-hook-logger" \
+  --strip-components=1
+
+mkdir -p "$CACHE_DIR/packages/opencode-llm-review-gate@1.0.0/node_modules/opencode-llm-review-gate"
+tar xzf "$SRC_DIR/plugins/llm-review-gate/opencode-llm-review-gate-1.0.0.tgz" \
+  -C "$CACHE_DIR/packages/opencode-llm-review-gate@1.0.0/node_modules/opencode-llm-review-gate" \
+  --strip-components=1
 ```
+
+```json
+"plugin": ["opencode-hook-logger@1.0.0", "opencode-llm-review-gate@1.0.0"]
+```
+
+Merge into the same `plugin` array as step 4's entry (if installed) rather than replacing it — `opencode.json`'s `plugin` field accepts multiple entries, and each entry here is independent: install just one by adding just its own line/array-entry above.
 
 ## 6. (Optional) Add the Oracle MCP server
 
@@ -186,12 +212,12 @@ cat ~/.local/share/opencode/last-system-prompt.txt
 
 Confirm: the output should start with the content of `system-prompt.txt` (not the original hand-holding `default.txt` identity paragraph), and should still have an `<env>` block further down with the real working directory/platform/date. If it still looks like the original verbose default, the `agent.prompt` config wasn't picked up — check for a JSON syntax error in `opencode.json` first.
 
-If you installed either plugin (steps 4/5) and `opencode run` errors out instead, check `opencode debug config` output for a `plugin_origins` entry resolving correctly (each should show as a `file://` spec pointing at `$CONFIG_DIR/plugins/...`) before assuming the whole setup is broken.
+If you installed either plugin (steps 4/5) and `opencode run` errors out instead, that's more likely the pre-seeded cache directory not matching what this machine's opencode build actually looks for (see step 4's note) than a problem with the prompt override itself — check `opencode debug config` output for a `plugin_origins` entry resolving correctly before assuming the whole setup is broken.
 
 ## 9. Cleanup (optional)
 
-`$SRC_DIR` (the extracted zip) and the original zip file can be deleted once `$CONFIG_DIR/system-prompt.txt`, `$CONFIG_DIR/plugins/` (whichever of steps 4/5 were installed), `$CONFIG_DIR/mcp/oracle/` (if installed), and `$CONFIG_DIR/mcp/loki/` (if installed) are in place — those are the only files that matter going forward. Ask the human running this before deleting anything, don't assume.
+`$SRC_DIR` (the extracted zip) and the original zip file can be deleted once `$CONFIG_DIR/system-prompt.txt`, `$CACHE_DIR/packages/opencode-system-prompt-tools@1.0.0/` (if installed), `$CACHE_DIR/packages/opencode-hook-logger@1.0.0/` (if installed), `$CACHE_DIR/packages/opencode-llm-review-gate@1.0.0/` (if installed), `$CONFIG_DIR/mcp/oracle/` (if installed), and `$CONFIG_DIR/mcp/loki/` (if installed) are in place — those are the only files that matter going forward (steps 4/5 extract straight into `$CACHE_DIR`, they don't leave a copy under `$CONFIG_DIR` the way `system-prompt.txt` does). Ask the human running this before deleting anything, don't assume.
 
 ## Report back
 
-State plainly: did `opencode.json` already exist (merged or created fresh)? Did step 8's verification confirm the custom prompt is actually being sent? If not, what did the actual output look like instead? Which plugin files did you end up installing (step 4, step 5, both, neither), and did each resolve cleanly in `opencode debug config`'s `plugin_origins`? Did steps 6/7's `npm install` actually succeed against the internal registry, or was there a real blocker there?
+State plainly: did `opencode.json` already exist (merged or created fresh)? Did step 8's verification confirm the custom prompt is actually being sent? If not, what did the actual output look like instead? Which `plugin` entries did you end up installing (step 4, step 5, both, neither), and did the pre-seeded package-cache directory get picked up as-is, or did this machine's opencode build need something different (a different `$CACHE_DIR` layout, a different spec form)? Did steps 6/7's `npm install` actually succeed against the internal registry, or was there a real blocker there?
