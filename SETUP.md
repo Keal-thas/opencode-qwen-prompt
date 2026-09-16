@@ -10,11 +10,13 @@ Run:
 opencode debug paths
 ```
 
-Use the `config` line from the output for all paths below (normally `~/.config/opencode` — substitute it everywhere `$CONFIG_DIR` appears if this machine differs). Set it as a variable for the rest of this session:
+Use the `config` line from the output for all paths below (normally `~/.config/opencode` — substitute it everywhere `$CONFIG_DIR` appears if this machine differs). Also grab the `cache` line — step 4/5 need it too. Set both as variables for the rest of this session:
 
 ```bash
 CONFIG_DIR="$(opencode debug paths | awk '/^config/ {print $2}')"
+CACHE_DIR="$(opencode debug paths | awk '/^cache/ {print $2}')"
 echo "$CONFIG_DIR"
+echo "$CACHE_DIR"
 ```
 
 Now find where the extracted zip landed. It was downloaded from GitHub as `opencode-qwen-prompt-master.zip` and extracted somewhere on this machine (Desktop, Downloads, wherever it was transferred to) — the extracted folder is named `opencode-qwen-prompt-master` (GitHub's zip export appends the branch name) unless renamed. Locate it, e.g.:
@@ -87,23 +89,23 @@ This machine has no internet, so opencode's hourly background refresh of its mod
 
 ## 4. (Optional but recommended) Install the viewer plugin
 
-This lets you actually see what gets sent to the model — matters here since this is the first time this setup runs against the real Qwen model, and you have no other way to check it worked. Ships as a pre-packed npm tarball (`deploy/opencode-system-prompt-tools-1.0.0.tgz`), not a raw `.ts` file — installed locally via a `file:` npm spec since this machine has no registry to fetch it from otherwise. Verified to install and load with no network round-trip at all in this repo's own docker sandbox (network deliberately cut during the test) — see `docker/docker-notes.md`'s "Plugin dependency pre-warming" section — so this should work the same way here.
+This lets you actually see what gets sent to the model — matters here since this is the first time this setup runs against the real Qwen model, and you have no other way to check it worked. Ships as a pre-packed npm tarball (`deploy/opencode-system-prompt-tools-1.0.0.tgz`), not a raw `.ts` file. This machine has no registry to fetch it from, and no npm/node install to rely on either — so instead of a `file:` spec, extract the tarball by hand straight into opencode's own package cache, under the exact `name@version` you'll reference in config. opencode resolves a bare `plugin` spec by looking for `$CACHE_DIR/packages/<that spec>/` and skips installing anything if it's already there — confirmed live, with outbound network cut, in this repo's own docker sandbox (see `docker/docker-notes.md`'s "Plugin dependency pre-warming" section) — so pre-seeding it here should work the same way:
 
 ```bash
-mkdir -p "$CONFIG_DIR/plugins"
-cp "$SRC_DIR/deploy/opencode-system-prompt-tools-1.0.0.tgz" "$CONFIG_DIR/plugins/opencode-system-prompt-tools-1.0.0.tgz"
+mkdir -p "$CACHE_DIR/packages/opencode-system-prompt-tools@1.0.0/node_modules/opencode-system-prompt-tools"
+tar xzf "$SRC_DIR/deploy/opencode-system-prompt-tools-1.0.0.tgz" \
+  -C "$CACHE_DIR/packages/opencode-system-prompt-tools@1.0.0/node_modules/opencode-system-prompt-tools" \
+  --strip-components=1
 ```
 
 Add to `opencode.json`'s top level (merge, don't replace, same rule as
-step 2):
+step 2) — a bare package name and version, no path at all:
 
 ```json
-"plugin": [
-  "file:/<absolute path to>/plugins/opencode-system-prompt-tools-1.0.0.tgz"
-]
+"plugin": ["opencode-system-prompt-tools@1.0.0"]
 ```
 
-Use the real absolute path on this machine (Windows path with forward slashes, e.g. `file:/C:/Users/<name>/.config/opencode/plugins/opencode-system-prompt-tools-1.0.0.tgz`) — don't guess it, derive it from `$CONFIG_DIR`. This single-colon `file:<path>` form (no `//` authority) is what worked against a real opencode install in this repo's Linux docker sandbox; if this machine's Windows/git-bash opencode build rejects it, try the `file://` URI form instead and note in your report which one actually worked.
+This relies on opencode's own internal package-cache behavior, not something its docs promise — if `opencode debug config` doesn't show a `plugin_origins` entry resolving cleanly for this spec, don't assume the cache layout above still matches this machine's opencode build; report exactly what you saw instead of guessing a fix.
 
 ## 5. (Optional) Install the hook-logger / llm-review-gate plugins package
 
@@ -115,14 +117,14 @@ Two more opencode plugins live in this repo, in the `plugins/` npm package — g
 Same offline install mechanism as step 4, a separate tarball:
 
 ```bash
-mkdir -p "$CONFIG_DIR/plugins"
-cp "$SRC_DIR/plugins/opencode-hook-plugins-1.0.0.tgz" "$CONFIG_DIR/plugins/opencode-hook-plugins-1.0.0.tgz"
+mkdir -p "$CACHE_DIR/packages/opencode-hook-plugins@1.0.0/node_modules/opencode-hook-plugins"
+tar xzf "$SRC_DIR/plugins/opencode-hook-plugins-1.0.0.tgz" \
+  -C "$CACHE_DIR/packages/opencode-hook-plugins@1.0.0/node_modules/opencode-hook-plugins" \
+  --strip-components=1
 ```
 
 ```json
-"plugin": [
-  "file:/<absolute path to>/plugins/opencode-hook-plugins-1.0.0.tgz"
-]
+"plugin": ["opencode-hook-plugins@1.0.0"]
 ```
 
 Merge this into the same `plugin` array as step 4's entry (if installed) rather than replacing it — `opencode.json`'s `plugin` field accepts multiple entries. This one tarball loads both `HookLogger` and `LlmReviewGate` together; there's no way to install just one from it.
@@ -211,12 +213,12 @@ cat ~/.local/share/opencode/last-system-prompt.txt
 
 Confirm: the output should start with the content of `system-prompt.txt` (not the original hand-holding `default.txt` identity paragraph), and should still have an `<env>` block further down with the real working directory/platform/date. If it still looks like the original verbose default, the `agent.prompt` config wasn't picked up — check for a JSON syntax error in `opencode.json` first.
 
-If you installed either plugin as a `file:` tarball spec (steps 4/5) and `opencode run` errors out instead, that's more likely a bad `plugin` entry (wrong absolute path, or this machine needing the `file://` URI form instead of `file:<path>`) than a problem with the prompt override itself — check `opencode debug config` output for a `plugin_origins` entry resolving correctly before assuming the whole setup is broken.
+If you installed either plugin (steps 4/5) and `opencode run` errors out instead, that's more likely the pre-seeded cache directory not matching what this machine's opencode build actually looks for (see step 4's note) than a problem with the prompt override itself — check `opencode debug config` output for a `plugin_origins` entry resolving correctly before assuming the whole setup is broken.
 
 ## 9. Cleanup (optional)
 
-`$SRC_DIR` (the extracted zip) and the original zip file can be deleted once `$CONFIG_DIR/system-prompt.txt`, `$CONFIG_DIR/plugins/opencode-system-prompt-tools-1.0.0.tgz` (if installed), `$CONFIG_DIR/plugins/opencode-hook-plugins-1.0.0.tgz` (if installed), `$CONFIG_DIR/mcp/oracle/` (if installed), and `$CONFIG_DIR/mcp/loki/` (if installed) are in place — those are the only files that matter going forward. Ask the human running this before deleting anything, don't assume.
+`$SRC_DIR` (the extracted zip) and the original zip file can be deleted once `$CONFIG_DIR/system-prompt.txt`, `$CACHE_DIR/packages/opencode-system-prompt-tools@1.0.0/` (if installed), `$CACHE_DIR/packages/opencode-hook-plugins@1.0.0/` (if installed), `$CONFIG_DIR/mcp/oracle/` (if installed), and `$CONFIG_DIR/mcp/loki/` (if installed) are in place — those are the only files that matter going forward (steps 4/5 extract straight into `$CACHE_DIR`, they don't leave a copy under `$CONFIG_DIR` the way `system-prompt.txt` does). Ask the human running this before deleting anything, don't assume.
 
 ## Report back
 
-State plainly: did `opencode.json` already exist (merged or created fresh)? Did step 8's verification confirm the custom prompt is actually being sent? If not, what did the actual output look like instead? Which `plugin` entries did you end up installing (step 4, step 5, both, neither), and did the single-colon `file:<path>` spec work as-is or did this machine need the `file://` URI form?
+State plainly: did `opencode.json` already exist (merged or created fresh)? Did step 8's verification confirm the custom prompt is actually being sent? If not, what did the actual output look like instead? Which `plugin` entries did you end up installing (step 4, step 5, both, neither), and did the pre-seeded package-cache directory get picked up as-is, or did this machine's opencode build need something different (a different `$CACHE_DIR` layout, a different spec form)?

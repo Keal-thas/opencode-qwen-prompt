@@ -4,11 +4,13 @@
 # plugins/llm-review-gate.ts) can be exercised against a real `opencode
 # run` without touching the host machine's own opencode config or
 # letting an all-permission agent loose on anything outside this
-# container. Both plugin groups ship as pre-packed npm tarballs
-# installed via a `file:` spec, not raw local file paths (see CLAUDE.md
-# and docs/feature-points/02-system-prompt-tools-plugin.md) - verified
-# to install and resolve fully offline (no registry hit) directly in
-# this sandbox before adopting it for the real deployment.
+# container. Both plugin groups ship as pre-packed npm tarballs,
+# extracted straight into opencode's own package cache under a bare
+# name@version - not a raw local file path or a `file:` spec (see
+# CLAUDE.md and docs/feature-points/02-system-prompt-tools-plugin.md) -
+# verified to resolve fully offline (no registry hit, no npm/bun on
+# PATH needed either) directly in this sandbox before adopting it for
+# the real deployment.
 #
 # The project directory itself is NOT copied in here — see
 # docker-compose.yml (this build's context is the repo root, one level
@@ -57,29 +59,37 @@ WORKDIR /home/${USERNAME}/project
 
 # Pre-warm the system-prompt-tools plugin's node_modules into this image
 # layer instead of a runtime volume (there's no opencode-config volume
-# anymore - see docker-compose.yml). opencode installs a `plugin`
-# entry's package (into ~/.cache/opencode/packages/) and its own
-# @opencode-ai/plugin dependency (into ~/.config/opencode/node_modules)
-# on first use of a `plugin` config entry, which costs ~20-25s of pure
-# network wait (measured); paying that once at build time means every
-# container already has it warm (verified: 0.6s vs 20-24s). `opencode
-# debug config` alone reliably triggers the install and exits 0 once
-# it's done (~50-60s wall time the first time, no real provider needed)
-# - `opencode run` also works but is unrelated to this and has its own
-# known hang bug (see docs/lessons-learned.md), so this deliberately
-# uses debug config instead. Runs as ${USERNAME}, not root, so HOME
-# resolves to /home/${USERNAME} and the install lands where the
-# entrypoint-generated config (see docker-entrypoint.sh) will actually
-# look for it at runtime. Installs from the committed tarball (a `file:`
-# npm spec), the same artifact SETUP.md ships to the real offline
-# target - not the raw .ts source, so this also doubles as an offline
-# smoke test of that install path.
-# TODO: switch to bare npm package-name import (e.g. "opencode-system-prompt-tools")
-# in the plugin array once these are published; file: tarball is only for the
-# network-restricted target.
+# anymore - see docker-compose.yml). opencode resolves a `plugin` entry
+# by extracting/installing it into a dedicated directory under
+# ~/.cache/opencode/packages/, keyed literally by the spec string used
+# in config - and skips that work entirely if the directory already
+# exists (confirmed live: 0.424s warm vs. hanging past 30s cold with no
+# network). Exploiting that: instead of a `file:` spec (whose cache key
+# is the file path itself, not a package identity), untar the committed
+# tarball straight into packages/<name>@<version>/node_modules/<name>/
+# by hand - no npm/bun/registry involved, `tar` is all this needs, and
+# opencode's own embedded installer needs no external npm either
+# (confirmed live: a fresh, never-cached real npm package still installs
+# fine with npm/node hidden from PATH) - so this has no more runtime
+# dependencies than the `file:` approach did. The `plugin` array can
+# then reference a bare "name@version" with no path baked in at all.
+# This is opencode 1.18.30's own undocumented cache-key behavior. not a
+# documented contract - re-verify this still holds after bumping
+# OPENCODE_VERSION. See docker-notes.md's "Plugin dependency
+# pre-warming" section for the full verification writeup. Runs as
+# ${USERNAME}, not root, so HOME resolves to /home/${USERNAME} and the
+# cache lands where the entrypoint-generated config (see
+# docker-entrypoint.sh) will actually look for it at runtime. Extracts
+# from the committed tarball, the same artifact SETUP.md ships to the
+# real offline target - not the raw .ts source, so this also doubles as
+# an offline smoke test of that install path.
 COPY --chown=${USERNAME}:${USERNAME} deploy/opencode-system-prompt-tools-1.0.0.tgz deploy/opencode-system-prompt-tools-1.0.0.tgz
 USER ${USERNAME}
-RUN printf '{"$schema":"https://opencode.ai/config.json","plugin":["file:/home/%s/project/deploy/opencode-system-prompt-tools-1.0.0.tgz"]}' "${USERNAME}" > "/home/${USERNAME}/.config/opencode/opencode.jsonc" \
+RUN mkdir -p "/home/${USERNAME}/.cache/opencode/packages/opencode-system-prompt-tools@1.0.0/node_modules/opencode-system-prompt-tools" \
+    && tar xzf deploy/opencode-system-prompt-tools-1.0.0.tgz \
+         -C "/home/${USERNAME}/.cache/opencode/packages/opencode-system-prompt-tools@1.0.0/node_modules/opencode-system-prompt-tools" \
+         --strip-components=1 \
+    && printf '{"$schema":"https://opencode.ai/config.json","plugin":["opencode-system-prompt-tools@1.0.0"]}' > "/home/${USERNAME}/.config/opencode/opencode.jsonc" \
     && opencode debug config >/dev/null \
     && rm "/home/${USERNAME}/.config/opencode/opencode.jsonc"
 USER root
