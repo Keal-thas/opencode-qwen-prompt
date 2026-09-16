@@ -8,7 +8,7 @@ SETUP.md 由 opencode 自己在受限机器上执行(没有公网,先把仓库�
 
 ## 0. 确认目录 + 找到源码
 
-`opencode debug paths` 打印各目录,`config` 行是要改的目标目录(记作 $CONFIG_DIR).再确认解压出来的 `opencode-qwen-prompt-master` 文件夹确实存在.
+`opencode debug paths` 打印各目录,`config` 行是要改的目标目录(记作 $CONFIG_DIR),`cache` 行(记作 $CACHE_DIR)第 4/5 步要用.再确认解压出来的 `opencode-qwen-prompt-master` 文件夹确实存在.
 
 ## 1. 拷贝 prompt 文件
 
@@ -31,22 +31,46 @@ OPENCODE_DISABLE_MODELS_FETCH=1
 
 ## 4. (建议做)装查看器插件
 
-装这个插件是为了能亲眼看到真正发给模型的 prompt——这是第一次对着真 Qwen 模型跑这套配置,之前只用免费云模型验证过.做法很简单:opencode 会自动加载 `$CONFIG_DIR/plugins/` 目录下的所有 .ts/.js 文件,不需要包,不需要 registry,也不用改 opencode.json 的 plugin 数组——直接把 `plugins/system-prompt-tools.ts` 拷过去就行,已经在 docker 沙箱里断网验证过.唯一可能碰网络的地方,是 opencode 第一次处理带插件的配置时,要装它自己的 `@opencode-ai/plugin` 支持包(装一次之后就一直是本地的,跟插件是不是本地文件无关).如果 `opencode debug config` 里这个 plugin 没解析出来,如实汇报看到的情况,不要瞎猜着改.
+装这个插件是为了能亲眼看到真正发给模型的 prompt——这是第一次对着真 Qwen 模型跑这套配置,之前只用免费云模型验证过.做法:把 `plugins/system-prompt-tools/opencode-system-prompt-tools-1.0.0.tgz` 解包进 `$CACHE_DIR/packages/opencode-system-prompt-tools@1.0.0/`,再在 opencode.json 的 plugin 数组里写裸的 `"opencode-system-prompt-tools@1.0.0"`(不带路径):
+
+```
+mkdir -p "$CACHE_DIR/packages/opencode-system-prompt-tools@1.0.0/node_modules/opencode-system-prompt-tools"
+tar xzf "$SRC_DIR/plugins/system-prompt-tools/opencode-system-prompt-tools-1.0.0.tgz" \
+  -C "$CACHE_DIR/packages/opencode-system-prompt-tools@1.0.0/node_modules/opencode-system-prompt-tools" \
+  --strip-components=1
+```
+
+```json
+"plugin": ["opencode-system-prompt-tools@1.0.0"]
+```
+
+这靠的是 opencode 按配置字符串在包缓存目录里找同名文件夹的内部行为,已经在 docker 沙箱断网测过.如果 `opencode debug config` 里没能正确解析这个 plugin,如实汇报看到的情况,不要瞎猜着改.
 
 ## 5. (可选)装 hook-logger / llm-review-gate
 
-跟 Qwen prompt 覆盖无关,不需要就跳过.做法跟第 4 步一样,两个是独立文件,想装哪个装哪个:
+跟 Qwen prompt 覆盖无关,不需要就跳过.装法跟第 4 步一样,两个各自打成独立 tarball,想装哪个装哪个:
 
 ```
-cp "$SRC_DIR/plugins/hook-logger.ts" "$CONFIG_DIR/plugins/hook-logger.ts"
-cp "$SRC_DIR/plugins/llm-review-gate.ts" "$CONFIG_DIR/plugins/llm-review-gate.ts"
+mkdir -p "$CACHE_DIR/packages/opencode-hook-logger@1.0.0/node_modules/opencode-hook-logger"
+tar xzf "$SRC_DIR/plugins/hook-logger/opencode-hook-logger-1.0.0.tgz" \
+  -C "$CACHE_DIR/packages/opencode-hook-logger@1.0.0/node_modules/opencode-hook-logger" \
+  --strip-components=1
+
+mkdir -p "$CACHE_DIR/packages/opencode-llm-review-gate@1.0.0/node_modules/opencode-llm-review-gate"
+tar xzf "$SRC_DIR/plugins/llm-review-gate/opencode-llm-review-gate-1.0.0.tgz" \
+  -C "$CACHE_DIR/packages/opencode-llm-review-gate@1.0.0/node_modules/opencode-llm-review-gate" \
+  --strip-components=1
 ```
 
-`hook-logger.ts` 把 hook 事件记成 JSONL,纯调试用.`llm-review-gate.ts` 给每次 bash 调用加一道隐藏的 LLM 审核(会真的改变运行时行为,装之前确认这是想要的效果).
+```json
+"plugin": ["opencode-hook-logger@1.0.0", "opencode-llm-review-gate@1.0.0"]
+```
+
+合并进第 4 步已有的 plugin 数组,不要覆盖.`hook-logger.ts` 把 hook 事件记成 JSONL,纯调试用.`llm-review-gate.ts` 给每次 bash 调用加一道隐藏的 LLM 审核(会真的改变运行时行为,装之前确认这是想要的效果).
 
 ## 6. (可选)Oracle MCP server
 
-`mcp/oracle/` 需要 `@modelcontextprotocol/sdk` 和 `oracledb` 这两个 npm 依赖——这台机器没有公网,但内网 registry 能下载第三方包,正常 `npm install` 应该就能装上(仓库没打包这两个依赖,跟第 4/5 步那种零依赖的插件不一样).如果 `npm install` 真的失败了,那是需要汇报的问题,不要瞎猜替代方案.`type: "remote"`——server 得有人自己单独 `npm start` 并保持运行,opencode 不管它的死活.真实连接信息(ORACLE_CONNECT_STRING/USER/PASSWORD)问操作的人要.
+`mcp/oracle/` 需要 `@modelcontextprotocol/sdk` 和 `oracledb` 这两个 npm 依赖——这台机器没有公网,但内网 registry 是公共 npm 的完整镜像,正常 `npm install` 就能装上(仓库没打包这两个依赖,跟第 4/5 步那种零依赖的插件不一样).如果 `npm install` 意外失败了,汇报出来,不要瞎猜替代方案.`type: "remote"`——server 得有人自己单独 `npm start` 并保持运行,opencode 不管它的死活.真实连接信息(ORACLE_CONNECT_STRING/USER/PASSWORD)问操作的人要.
 
 ## 7. (可选)Loki MCP server
 
@@ -58,11 +82,11 @@ cp "$SRC_DIR/plugins/llm-review-gate.ts" "$CONFIG_DIR/plugins/llm-review-gate.ts
 
 ## 9. (可选)清理
 
-zip 和解压出来的文件夹用完可以删,长期要留的只有 $CONFIG_DIR 里的 system-prompt.txt 和 plugins/ 目录(装了插件/MCP server 的话,那些文件也要留着).删之前问一下操作的人要不要留,不要自作主张.
+zip 和解压出来的文件夹用完可以删,长期要留的只有 $CONFIG_DIR 里的 system-prompt.txt(装了插件的话,$CACHE_DIR/packages/ 下那几个对应的目录;装了 MCP server 的话,那些文件也要留着).删之前问一下操作的人要不要留,不要自作主张.
 
 ## 跑完之后要说清楚的事
 
 - opencode.json 之前有没有?是新建的还是合并进去的?
 - 第 8 步验证有没有确认新 prompt 真的生效了?没生效的话实际看到的输出长什么样?
-- 第 4/5 步装了哪些插件?`opencode debug config` 的 plugin_origins 里有没有正常解析出来?
+- 第 4/5 步装了哪些插件?包缓存目录是不是按预期被 opencode 识别了(`opencode debug config` 的 plugin_origins)?
 - 第 6/7 步的 `npm install` 有没有真的跑通(内网 registry 是否如预期可用)?

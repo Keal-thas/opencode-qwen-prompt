@@ -8,7 +8,14 @@ set -e
 # `--rm`. Mirrors SETUP.md steps 1/2/4 for the real deployment:
 # build/plan/general point at system-prompt.txt through the live
 # bind-mounted project dir (not a build-time copy), so host edits to
-# that file show up without a rebuild.
+# that file show up without a rebuild. The diagnostic dump plugin loads
+# by bare "name@version" instead - editing
+# plugins/system-prompt-tools/system-prompt-tools.ts now needs `npm
+# pack` in that directory *and* an image rebuild (`docker/dev.sh
+# build`) to take effect here, since the actual install (extracting the
+# tarball into opencode's own package cache, keyed by this exact spec
+# string) was pre-warmed into the image layer (see the Dockerfile) -
+# see docker-notes.md.
 cat > /home/dev/.config/opencode/opencode.jsonc <<'EOF'
 {
   "$schema": "https://opencode.ai/config.json",
@@ -16,22 +23,11 @@ cat > /home/dev/.config/opencode/opencode.jsonc <<'EOF'
     "build": { "prompt": "{file:/home/dev/project/deploy/system-prompt.txt}" },
     "plan": { "prompt": "{file:/home/dev/project/deploy/system-prompt.txt}" },
     "general": { "prompt": "{file:/home/dev/project/deploy/system-prompt.txt}" }
-  }
+  },
+  "plugin": ["opencode-system-prompt-tools@1.0.0"]
 }
 EOF
 chown dev:dev /home/dev/.config/opencode/opencode.jsonc
-
-# The diagnostic dump plugin (and, if ever wanted, hook-logger.ts /
-# llm-review-gate.ts) loads from opencode's local-plugin directory, not
-# the `plugin` config array above - auto-loaded at startup, no package,
-# no registry (see SETUP.md steps 4/5, docker-notes.md's "Plugin
-# dependency pre-warming"). Copied fresh from the live bind mount on
-# every start, so host edits to the .ts source show up without an image
-# rebuild - the Dockerfile only pre-warms opencode's own
-# @opencode-ai/plugin support package, not these files themselves.
-mkdir -p /home/dev/.config/opencode/plugins
-cp /home/dev/project/plugins/system-prompt-tools.ts /home/dev/.config/opencode/plugins/system-prompt-tools.ts
-chown -R dev:dev /home/dev/.config/opencode/plugins
 
 # Load provider API keys from the read-only ~/.keys mount into this
 # container's env only - never written back to the host, never logged.

@@ -11,7 +11,7 @@ import { join } from "node:path";
 const fakeHome = await mkdtemp(join(tmpdir(), "llm-review-gate-test-"));
 process.env.HOME = fakeHome;
 
-const { LlmReviewGate } = await import("../../plugins/llm-review-gate.ts");
+const { LlmReviewGate } = await import("../../plugins/llm-review-gate/llm-review-gate.ts");
 const logFile = join(fakeHome, "opencode-hook-output", "llm-review.jsonl");
 
 after(() => rm(fakeHome, { recursive: true, force: true }));
