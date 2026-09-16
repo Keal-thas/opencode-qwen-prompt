@@ -68,24 +68,18 @@ Check whether `$CONFIG_DIR/opencode.json` already exists.
 
 ## 3. (Optional) Point the models.dev catalog at a local file
 
-This machine has no internet, so opencode's hourly background refresh of its models.dev metadata catalog can never succeed here — harmless on its own (non-blocking, fails silently), but writes a failed-fetch log line every hour forever. Not required either way: this setup's Qwen provider is defined by hand in `opencode.json`, not looked up from that catalog. Two ways to handle it, both via environment variables set persistently on this machine (e.g. `~/.bashrc`, or a Windows user/system env var) — there's no JSON config key for either:
+This machine has no internet, so opencode's hourly background refresh of its models.dev metadata catalog can never succeed here — harmless on its own (non-blocking, fails silently), but writes a failed-fetch log line every hour forever. Not required either way: this setup's Qwen provider is defined by hand in `opencode.json`, not looked up from that catalog.
 
-- **Just silence it** (simplest, relies on the snapshot already baked into the offline build at compile time):
+To silence it with fresher data than the snapshot baked into the offline build at compile time, copy this repo's `deploy/models-dev-snapshot.json` (captured from `opencode models --refresh` on a machine with internet) into place and set both environment variables persistently on this machine (e.g. `~/.bashrc`, or a Windows user/system env var — there's no JSON config key for either). Both are required together: `OPENCODE_MODELS_PATH` alone only affects the first read at startup — the hourly background refresh checks the cache directory's file age instead, not this path, so without `OPENCODE_DISABLE_MODELS_FETCH` too it would still attempt a fetch every 60 minutes:
 
-  ```bash
-  OPENCODE_DISABLE_MODELS_FETCH=1
-  ```
+```bash
+cp "$SRC_DIR/deploy/models-dev-snapshot.json" "$CONFIG_DIR/models-dev-snapshot.json"
+```
 
-- **Or point it at an actual local copy** (this repo ships one at `deploy/models-dev-snapshot.json`, captured from `opencode models --refresh` on a machine with internet). Copy it into place and set both variables — `OPENCODE_MODELS_PATH` alone isn't enough, the background refresh loop checks the cache directory's file age, not this path, so it would still attempt a fetch every 60 minutes without `OPENCODE_DISABLE_MODELS_FETCH` too:
-
-  ```bash
-  cp "$SRC_DIR/deploy/models-dev-snapshot.json" "$CONFIG_DIR/models-dev-snapshot.json"
-  ```
-
-  ```bash
-  OPENCODE_MODELS_PATH="$CONFIG_DIR/models-dev-snapshot.json"
-  OPENCODE_DISABLE_MODELS_FETCH=1
-  ```
+```bash
+OPENCODE_MODELS_PATH="$CONFIG_DIR/models-dev-snapshot.json"
+OPENCODE_DISABLE_MODELS_FETCH=1
+```
 
 ## 4. (Optional but recommended) Install the viewer plugin
 
