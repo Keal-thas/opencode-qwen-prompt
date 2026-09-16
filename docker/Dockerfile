@@ -1,6 +1,6 @@
 # Local dev/test sandbox for this repo: a real opencode install plus
 # Node/npm/Python, so deploy/system-prompt.txt, deploy/opencode.json.example,
-# and the plugins (deploy/system-prompt-tools.ts, plugins/hook-logger.ts,
+# and the plugins (plugins/system-prompt-tools.ts, plugins/hook-logger.ts,
 # plugins/llm-review-gate.ts) can be exercised against a real `opencode
 # run` without touching the host machine's own opencode config or
 # letting an all-permission agent loose on anything outside this
@@ -67,7 +67,7 @@ WORKDIR /home/${USERNAME}/project
 # "Plugin dependency pre-warming" section), so a throwaway local-file
 # plugin here is enough to trigger and cache it once, at build time,
 # instead of paying opencode's ~50-60s cold install on every fresh
-# container's first use. Our actual plugins (deploy/system-prompt-tools.ts,
+# container's first use. Our actual plugins (plugins/system-prompt-tools.ts,
 # plugins/hook-logger.ts, plugins/llm-review-gate.ts) are NOT baked in
 # here - docker-entrypoint.sh copies them fresh from the live bind mount
 # on every container start, so host edits take effect without a

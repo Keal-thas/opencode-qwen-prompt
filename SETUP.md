@@ -85,7 +85,7 @@ This lets you actually see what gets sent to the model — matters here since th
 
 ```bash
 mkdir -p "$CONFIG_DIR/plugins"
-cp "$SRC_DIR/deploy/system-prompt-tools.ts" "$CONFIG_DIR/plugins/system-prompt-tools.ts"
+cp "$SRC_DIR/plugins/system-prompt-tools.ts" "$CONFIG_DIR/plugins/system-prompt-tools.ts"
 ```
 
 The only network opencode ever needs for a plugin-touching config is a one-time install of its own `@opencode-ai/plugin` support package into `$CONFIG_DIR/node_modules` the first time it ever processes one — after that (or if this machine's opencode install already did this once for any reason), it's instant, local file or not. If `opencode debug config` doesn't show a `plugin_origins` entry resolving cleanly for this file, report exactly what you saw instead of guessing a fix.

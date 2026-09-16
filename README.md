@@ -10,8 +10,8 @@ A workspace for building on top of `opencode` (the CLI coding agent): a system-p
 |---|---|
 | `deploy/` | The Qwen prompt-override payload — the piece that actually ships to the target machine |
 | `docker/` | Local Docker sandbox for exercising this workspace's prompt/plugins against a real opencode install, without touching your own machine's config; see `docker/docker-notes.md` |
-| `plugins/` | Two standalone custom opencode hook plugins — part of the "writing tools for opencode" side of this workspace, not the Qwen override |
-| `module-analysis/` | A script for using opencode to generate an architecture map of a large codebase — its own thing, not tied to the Qwen setup; see `module-analysis/README.md` |
+| `plugins/` | Three standalone custom opencode plugins, `system-prompt-tools.ts` (the Qwen override's diagnostic plugin) plus `hook-logger.ts`/`llm-review-gate.ts` (general "writing tools for opencode", not the Qwen override) |
+| `toolkits/` | Standalone scripts that drive opencode as a client via `@opencode-ai/sdk` — `module-analysis/` (generates an architecture map of a large codebase, own thing, not tied to the Qwen setup; see `toolkits/module-analysis/README.md`) so far, more may be added |
 | `mcp/` | MCP servers for LAN-internal ops tooling (Oracle and Loki so far; see `mcp/TODO.md`) |
 | `docs/` | Research notes, a local mirror of opencode's own docs, and a feature-by-feature inventory of this workspace ([docs/feature-points.md](docs/feature-points.md)) |
 | `tests/` | Automated tests covering this workspace's feature points; `./tests/run-all.sh` is the entry point — see `tests/README.md` |
@@ -27,9 +27,14 @@ opencode overrides the system prompt it sends to a model using its own config �
 
 - `system-prompt.txt` — the replacement prompt content, edit to taste.
 - `opencode.json.example` — the config that wires `system-prompt.txt` in.
-- `system-prompt-tools.ts` — optional plugin that dumps the fully-assembled system prompt to a local file on every request. Diagnostic only, not required. Copied as-is into opencode's local-plugin directory (`$CONFIG_DIR/plugins/`), which opencode auto-loads at startup — no package, no registry, see `docs/feature-points/02-system-prompt-tools-plugin.md`.
-- `captured-example-prompt.txt` — a real capture from a test run against opencode's own hosted `north-mini-code-free` model, kept as a reference for the plugin's dump output. Not your Qwen setup's actual prompt.
-- `models-dev-snapshot.json` — a local copy of opencode's models.dev metadata catalog, for the offline restricted machine to point `OPENCODE_MODELS_PATH` at instead of ever fetching it live. See SETUP.md step 3. Optional — the offline build already has a build-time snapshot baked in as a fallback.
+- `models-dev-snapshot.json` — a local copy of opencode's models.dev metadata catalog, for the offline restricted machine to point `OPENCODE_MODELS_PATH` at instead of ever fetching it live. See SETUP.md step 3. Optional — the offline build already has a build-time snapshot baked in as a fallback. Generated, not hand-authored — refresh with `./deploy/fetch-models-snapshot.sh`; also listed in `.gitignore` for the same reason as `docs/opencode-docs-reference/` (kept out of broad searches, still git-tracked so it travels in the zip transfer — see that directory's own `fetch-opencode-docs.sh` header for the mechanism).
+
+### What's in `plugins/`
+
+- `system-prompt-tools.ts` — optional plugin that dumps the fully-assembled system prompt to a local file on every request. Diagnostic only, not required, but the only way to confirm the override is actually reaching the real model. See `docs/feature-points/02-system-prompt-tools-plugin.md`.
+- `hook-logger.ts` / `llm-review-gate.ts` — general-purpose opencode tooling, unrelated to the Qwen override. See `docs/feature-points/03-hook-logger-plugin.md` / `04-llm-review-gate-plugin.md`.
+
+All three are standalone `.ts` files with no npm dependencies — opencode auto-loads whatever's copied into `$CONFIG_DIR/plugins/` at startup, no package, no registry (SETUP.md steps 4/5).
 
 ### How the override works
 

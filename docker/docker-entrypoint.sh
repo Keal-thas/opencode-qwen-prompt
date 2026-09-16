@@ -30,7 +30,7 @@ chown dev:dev /home/dev/.config/opencode/opencode.jsonc
 # rebuild - the Dockerfile only pre-warms opencode's own
 # @opencode-ai/plugin support package, not these files themselves.
 mkdir -p /home/dev/.config/opencode/plugins
-cp /home/dev/project/deploy/system-prompt-tools.ts /home/dev/.config/opencode/plugins/system-prompt-tools.ts
+cp /home/dev/project/plugins/system-prompt-tools.ts /home/dev/.config/opencode/plugins/system-prompt-tools.ts
 chown -R dev:dev /home/dev/.config/opencode/plugins
 
 # Load provider API keys from the read-only ~/.keys mount into this
