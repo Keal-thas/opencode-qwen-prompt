@@ -9,7 +9,7 @@ A feature-by-feature inventory of this workspace. Index only — details in `fea
 5. [Docker dev/test sandbox](feature-points/05-docker-sandbox.md) — isolated container for exercising opencode. **Is the test environment.**
 6. [module-analysis toolkit](feature-points/06-module-analysis.md) — batch per-module architecture-doc generator. **Tested.**
 7. [models.dev offline catalog handling](feature-points/07-models-dev-offline-catalog.md) — offline-safe models metadata. **Partially tested** (JSON validity only).
-8. [Deployment docs](feature-points/08-deployment-docs.md) — SETUP.md + zh walkthrough. **Indirectly tested.**
+8. [Deployment docs](feature-points/08-deployment-docs.md) — SETUP.md + zh walkthrough.
 9. [Local opencode docs mirror](feature-points/09-docs-mirror.md) — vendored docs + fetch script. **Syntax-tested only.**
 10. [Project memory](feature-points/10-project-memory.md) — git-tracked cross-machine memory. **Not applicable** (no app behavior).
 11. [Release automation](feature-points/11-release-automation.md) — GitHub Actions zip release on tag push. **Untested** (real release action).
