@@ -8,7 +8,7 @@ SETUP.md 由 opencode 自己在受限机器上执行(没有公网,先把仓库�
 
 ## 0. 确认目录 + 找到源码
 
-`opencode debug paths` 打印各目录,`config` 行是要改的目标目录(记作 $CONFIG_DIR),`cache` 行(记作 $CACHE_DIR)第 4/5 步要用.再确认解压出来的 `opencode-qwen-prompt-master` 文件夹确实存在.
+`opencode debug paths` 打印各目录,`config` 行是要改的目标目录(记作 $CONFIG_DIR).再确认解压出来的 `opencode-qwen-prompt-master` 文件夹确实存在.
 
 ## 1. 拷贝 prompt 文件
 
@@ -31,7 +31,7 @@ OPENCODE_DISABLE_MODELS_FETCH=1
 
 ## 4. (建议做)装查看器插件
 
-装这个插件是为了能亲眼看到真正发给模型的 prompt——这是第一次对着真 Qwen 模型跑这套配置,之前只用免费云模型验证过.做法很简单:opencode 会自动加载 `$CONFIG_DIR/plugins/` 目录下的所有 .ts/.js 文件,不需要包,不需要 registry,也不用改 opencode.json 的 plugin 数组——直接把 `deploy/system-prompt-tools.ts` 拷过去就行,已经在 docker 沙箱里断网验证过.唯一可能碰网络的地方,是 opencode 第一次处理带插件的配置时,要装它自己的 `@opencode-ai/plugin` 支持包(装一次之后就一直是本地的,跟插件是不是本地文件无关).如果 `opencode debug config` 里这个 plugin 没解析出来,如实汇报看到的情况,不要瞎猜着改.
+装这个插件是为了能亲眼看到真正发给模型的 prompt——这是第一次对着真 Qwen 模型跑这套配置,之前只用免费云模型验证过.做法很简单:opencode 会自动加载 `$CONFIG_DIR/plugins/` 目录下的所有 .ts/.js 文件,不需要包,不需要 registry,也不用改 opencode.json 的 plugin 数组——直接把 `plugins/system-prompt-tools.ts` 拷过去就行,已经在 docker 沙箱里断网验证过.唯一可能碰网络的地方,是 opencode 第一次处理带插件的配置时,要装它自己的 `@opencode-ai/plugin` 支持包(装一次之后就一直是本地的,跟插件是不是本地文件无关).如果 `opencode debug config` 里这个 plugin 没解析出来,如实汇报看到的情况,不要瞎猜着改.
 
 ## 5. (可选)装 hook-logger / llm-review-gate
 

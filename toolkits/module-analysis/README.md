@@ -72,7 +72,7 @@ Structural choices beyond that core rule:
 ## Usage
 
 ```bash
-cd module-analysis && npm install   # once, pulls in @opencode-ai/sdk
+cd toolkits/module-analysis && npm install   # once, pulls in @opencode-ai/sdk
 
 MODULES_DIR=/path/to/project/src/modules \
 OUT_DIR=/path/to/project/docs/module-analysis \

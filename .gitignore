@@ -25,3 +25,10 @@ mcp/**/.env
 # only recursive discovery is filtered. New pages added by the fetch script
 # need `git add -f` since gitignored paths aren't auto-picked-up as untracked.
 docs/opencode-docs-reference/
+
+# Same reasoning as docs/opencode-docs-reference/ above - still git-tracked
+# and committed normally (see deploy/fetch-models-snapshot.sh), this entry
+# doesn't untrack it. It's a generated data dump (opencode's models.dev
+# catalog), not hand-authored content, so it's excluded from broad
+# recursive search the same way. Re-add with `git add -f` after refreshing.
+deploy/models-dev-snapshot.json

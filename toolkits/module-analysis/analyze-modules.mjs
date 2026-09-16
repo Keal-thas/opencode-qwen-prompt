@@ -14,7 +14,7 @@
 // that already has a non-empty output file is skipped.
 //
 // Usage:
-//   cd module-analysis && npm install   # once, pulls in @opencode-ai/sdk
+//   cd toolkits/module-analysis && npm install   # once, pulls in @opencode-ai/sdk
 //   MODULES_DIR=/path/to/project/src/modules \
 //   OUT_DIR=/path/to/project/docs/module-analysis \
 //   ./analyze-modules.mjs

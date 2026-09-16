@@ -22,9 +22,9 @@ node --test tests/unit/*.test.mjs
 
 echo
 echo "== analyze-modules.mjs integration test =="
-# module-analysis/ is its own npm package (see its package.json) - install
-# @opencode-ai/sdk before driving it, same as mcp/oracle below.
-(cd module-analysis && npm install --no-audit --no-fund)
+# toolkits/module-analysis/ is its own npm package (see its package.json) -
+# install @opencode-ai/sdk before driving it, same as mcp/oracle below.
+(cd toolkits/module-analysis && npm install --no-audit --no-fund)
 node tests/integration/analyze-modules.test.mjs
 
 echo

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Integration test for module-analysis/analyze-modules.mjs. Runs the real
+// Integration test for toolkits/module-analysis/analyze-modules.mjs. Runs the real
 // driver against a real opencode server (the SDK's createOpencode() spawns
 // the actual `opencode` binary), with a fake local OpenAI-compatible HTTP
 // server standing in for the model provider - so it's still fast/
@@ -118,8 +118,8 @@ try {
   const fail = [];
 
   try {
-    await execFileAsync(process.execPath, [join(REPO_ROOT, "module-analysis", "analyze-modules.mjs")], {
-      cwd: join(REPO_ROOT, "module-analysis"),
+    await execFileAsync(process.execPath, [join(REPO_ROOT, "toolkits", "module-analysis", "analyze-modules.mjs")], {
+      cwd: join(REPO_ROOT, "toolkits", "module-analysis"),
       env: {
         ...process.env,
         HOME: fakeHome,
