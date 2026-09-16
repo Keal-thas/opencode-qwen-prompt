@@ -1,0 +1,60 @@
+# 部署说明(中文,对照 SETUP.md)
+
+SETUP.md 由 opencode 自己在受限机器上执行(没有网络,先把仓库打包传过去,再照着文件一步步跑).这份文件给旁边看着的人用,按相同的步骤编号说明每步在做什么,怎么判断做对了.命令本身以 SETUP.md 为准.
+
+## 背景
+
+机器完全离线,仓库以 zip 形式传过来解压.目标:用 `deploy/system-prompt.txt` 替换掉 opencode 内置的默认 prompt,不破坏机器上已经配好的 vLLM provider 配置.
+
+## 0. 确认目录 + 找到源码
+
+`opencode debug paths` 打印各目录,`config` 行是要改的目标目录(记作 $CONFIG_DIR),`cache` 行(记作 $CACHE_DIR)第 4/5 步要用.再确认解压出来的 `opencode-qwen-prompt-master` 文件夹确实存在.
+
+## 1. 拷贝 prompt 文件
+
+把 `deploy/system-prompt.txt` 复制到 $CONFIG_DIR.纯拷贝,不涉及判断.
+
+## 2. 接入 opencode.json
+
+没有 opencode.json 就用 `deploy/opencode.json.example` 起步,再手动补上真实的 vLLM provider 配置(仓库不知道真实地址).已经有的话,只合并 `agent` 字段(build/plan/general 都指向 system-prompt.txt),不要动已有的 provider,权限等配置.改完用 `python -m json.tool` 之类工具验证 JSON 语法没错.
+
+## 3. (可选)models.dev 目录数据走本地文件
+
+这台机器没网,opencode 每小时一次的目录刷新注定失败,但无害——离线版本编译时已经打包了旧数据,启动不受影响,失败只往日志写一行错误.这套配置的 provider 是手写在 opencode.json 里的,本来就不查这个目录.
+
+想要比编译时快照新一点的数据:把仓库里的 `deploy/models-dev-snapshot.json`(来自能联网的机器上跑 `opencode models --refresh`)拷进 $CONFIG_DIR,然后**同时**设两个环境变量,缺一不可——`OPENCODE_MODELS_PATH` 只影响启动时第一次读取,后台每小时的刷新任务看的是另一个缓存目录的文件修改时间,跟这个变量无关,必须搭配 `OPENCODE_DISABLE_MODELS_FETCH=1` 才能真正止住每小时的联网尝试:
+
+```
+OPENCODE_MODELS_PATH=<拷贝后那个 json 文件的绝对路径>
+OPENCODE_DISABLE_MODELS_FETCH=1
+```
+
+## 4. (建议做)装查看器插件
+
+装这个插件是为了能亲眼看到真正发给模型的 prompt——这是第一次对着真 Qwen 模型跑这套配置,之前只用免费云模型验证过.做法:把 `deploy/opencode-system-prompt-tools-1.0.0.tgz` 解包进 `$CACHE_DIR/packages/opencode-system-prompt-tools@1.0.0/`,再在 opencode.json 的 plugin 数组里写裸的 `"opencode-system-prompt-tools@1.0.0"`(不带路径).这靠的是 opencode 按配置字符串在包缓存目录里找同名文件夹的内部行为,已经在 docker 沙箱断网测过.如果 `opencode debug config` 里没能正确解析这个 plugin,如实汇报看到的情况,不要瞎猜着改.
+
+## 5. (可选)装 hook-logger / llm-review-gate
+
+跟 Qwen prompt 覆盖无关,不需要就跳过.`hook-logger.ts` 把 hook 事件记成 JSONL,纯调试用.`llm-review-gate.ts` 给每次 bash 调用加一道隐藏的 LLM 审核(会真的改变运行时行为,装之前确认这是想要的效果).装法同第 4 步,换成 `plugins/opencode-hook-plugins-1.0.0.tgz`,合并进同一个 plugin 数组.两个插件绑在一个包里,没法只装一个.
+
+## 6. (可选,尚不完整)Oracle MCP server
+
+`mcp/oracle/` 需要 `@modelcontextprotocol/sdk` 和 `oracledb`,这台机器装不了,仓库也还没打包好离线版(见 `mcp/TODO.md`).遇到时先跟操作的人说清楚,别硬着头皮往下做.`type: "remote"`——server 得有人自己单独 `npm start` 并保持运行,opencode 不管它的死活.真实连接信息(ORACLE_CONNECT_STRING/USER/PASSWORD)问操作的人要.
+
+## 7. (可选,尚不完整)Loki MCP server
+
+跟第 6 步同样情况:`mcp/loki/` 需要 `@modelcontextprotocol/sdk`,装不了就先说清楚跳过.同样 `type: "remote"`,同样要人单独启动并保持运行.只有 `LOKI_BASE_URL` 是必须问的,账号密码/租户 ID 视那台 Loki 是否要求而定.
+
+## 8. 验证
+
+跑一句最简单的测试请求,装了第 4 步插件的话再打开 `~/.local/share/opencode/last-system-prompt.txt`——应该以 system-prompt.txt 的内容开头,后面跟着 opencode 自己生成的 `<env>` 信息块.如果看到的还是原来啰嗦的开场白,说明 opencode.json 没生效,先查 JSON 有没有写错.
+
+## 9. (可选)清理
+
+zip 和解压出来的文件夹用完可以删,长期要留的只有 $CONFIG_DIR 里的 system-prompt.txt(装了插件/MCP server 的话,那些文件也要留着).删之前问一下操作的人要不要留,不要自作主张.
+
+## 跑完之后要说清楚的事
+
+- opencode.json 之前有没有?是新建的还是合并进去的?
+- 第 8 步验证有没有确认新 prompt 真的生效了?没生效的话实际看到的输出长什么样?
+- 第 4/5 步装了哪些插件?包缓存目录是不是按预期被 opencode 识别了?
