@@ -196,7 +196,45 @@ One thing needs a real value that this repo or an executing agent should never g
 
 `loki_query_range` is a full passthrough (any LogQL, no restriction — see `mcp/loki/README.md`) by deliberate design; unrelated to this deployment step.
 
-## 8. Verify
+## 8. (Optional) Add the Memory MCP server
+
+Unlike steps 6/7, this isn't a server this repo wrote — it's the official upstream `@modelcontextprotocol/server-memory` package (a local knowledge-graph memory: entities/relations/observations in a JSONL file, keyword search only, no embeddings). See `docs/feature-points/15-opencode-memory-mcp.md` for why this one and not a vector/RAG approach. It's also wired as `type: "local"` (opencode spawns and owns the process itself), unlike Oracle/Loki's `type: "remote"` — no separate terminal or process supervisor to keep running.
+
+Install it globally via the internal npm registry (same registry steps 6/7 already confirmed works for third-party packages):
+
+```bash
+npm install -g @modelcontextprotocol/server-memory
+```
+
+This puts an `mcp-server-memory` binary on `PATH` (same mechanism that already makes the `opencode` command itself work on this machine). Deliberately not wired as `npx -y @modelcontextprotocol/server-memory` in `opencode.json` — that would make every opencode startup depend on the internal registry being reachable at that moment; installing once and pointing straight at the resulting binary avoids a live-network dependency on every run.
+
+Pick a stable, absolute path for the memory file — not the package's own default location (a global npm package's directory can move or get wiped on an upgrade). `$CONFIG_DIR` is already this deployment's stable home (same place `system-prompt.txt` landed in step 1):
+
+```bash
+MEMORY_FILE_PATH="$CONFIG_DIR/memory.jsonl"
+echo "$MEMORY_FILE_PATH"
+```
+
+Add this to `opencode.json`'s top level (merge, don't replace, same rule as step 2) — `deploy/opencode.json.example` already carries this same block with `enabled: false` and no `environment` (the example can't know this machine's `$CONFIG_DIR` in advance). Substitute the real path you just echoed for `<MEMORY_FILE_PATH>` below:
+
+```json
+"mcp": {
+  "memory": {
+    "type": "local",
+    "command": ["mcp-server-memory"],
+    "enabled": true,
+    "environment": {
+      "MEMORY_FILE_PATH": "<MEMORY_FILE_PATH>"
+    }
+  }
+}
+```
+
+`deploy/system-prompt.txt`'s `# Memory` section already tells the model when to use this tool (checked at session start, durable facts only) — no extra `AGENTS.md` instructions needed on top of what step 1 already copied in.
+
+This knowledge graph will contain whatever the model decides is worth remembering about the user/project over time — unlike this repo's own git-tracked `memory/`, `$CONFIG_DIR/memory.jsonl` is local machine state, not backed up or version-controlled by anything in this repo. If that's not the durability/privacy tradeoff wanted here, that's a real open decision, not something to guess at — flag it back rather than silently changing where the file lives.
+
+## 9. Verify
 
 Run a trivial request against your actual local model:
 
@@ -214,10 +252,10 @@ Confirm: the output should start with the content of `system-prompt.txt` (not th
 
 If you installed either plugin (steps 4/5) and `opencode run` errors out instead, that's more likely the pre-seeded cache directory not matching what this machine's opencode build actually looks for (see step 4's note) than a problem with the prompt override itself — check `opencode debug config` output for a `plugin_origins` entry resolving correctly before assuming the whole setup is broken.
 
-## 9. Cleanup (optional)
+## 10. Cleanup (optional)
 
-`$SRC_DIR` (the extracted zip) and the original zip file can be deleted once `$CONFIG_DIR/system-prompt.txt`, `$CACHE_DIR/packages/opencode-system-prompt-tools@1.0.0/` (if installed), `$CACHE_DIR/packages/opencode-hook-logger@1.0.0/` (if installed), `$CACHE_DIR/packages/opencode-llm-review-gate@1.0.0/` (if installed), `$CONFIG_DIR/mcp/oracle/` (if installed), and `$CONFIG_DIR/mcp/loki/` (if installed) are in place — those are the only files that matter going forward (steps 4/5 extract straight into `$CACHE_DIR`, they don't leave a copy under `$CONFIG_DIR` the way `system-prompt.txt` does). Ask the human running this before deleting anything, don't assume.
+`$SRC_DIR` (the extracted zip) and the original zip file can be deleted once `$CONFIG_DIR/system-prompt.txt`, `$CACHE_DIR/packages/opencode-system-prompt-tools@1.0.0/` (if installed), `$CACHE_DIR/packages/opencode-hook-logger@1.0.0/` (if installed), `$CACHE_DIR/packages/opencode-llm-review-gate@1.0.0/` (if installed), `$CONFIG_DIR/mcp/oracle/` (if installed), `$CONFIG_DIR/mcp/loki/` (if installed), and the globally-installed `@modelcontextprotocol/server-memory` (if installed, step 8 — nothing under `$SRC_DIR` to clean up for it either way) are in place — those are the only files that matter going forward (steps 4/5 extract straight into `$CACHE_DIR`, they don't leave a copy under `$CONFIG_DIR` the way `system-prompt.txt` does). Ask the human running this before deleting anything, don't assume.
 
 ## Report back
 
-State plainly: did `opencode.json` already exist (merged or created fresh)? Did step 8's verification confirm the custom prompt is actually being sent? If not, what did the actual output look like instead? Which `plugin` entries did you end up installing (step 4, step 5, both, neither), and did the pre-seeded package-cache directory get picked up as-is, or did this machine's opencode build need something different (a different `$CACHE_DIR` layout, a different spec form)? Did steps 6/7's `npm install` actually succeed against the internal registry, or was there a real blocker there?
+State plainly: did `opencode.json` already exist (merged or created fresh)? Did step 9's verification confirm the custom prompt is actually being sent? If not, what did the actual output look like instead? Which `plugin` entries did you end up installing (step 4, step 5, both, neither), and did the pre-seeded package-cache directory get picked up as-is, or did this machine's opencode build need something different (a different `$CACHE_DIR` layout, a different spec form)? Did steps 6/7's `npm install` actually succeed against the internal registry, or was there a real blocker there? If you installed step 8, did `npm install -g` actually put `mcp-server-memory` on `PATH` the same way it did for `opencode` itself — and separately, did the model actually call the memory tools during step 9's verification, or does `deploy/system-prompt.txt`'s `# Memory` section need stronger wording for this specific model?
