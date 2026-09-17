@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Publishes the current git HEAD as @kealthas/opencode-qwen-prompt on public
+# Publishes the current git HEAD as @kealthas-dev/opencode-qwen-prompt on public
 # npmjs.com. This isn't a real dependency for anything - it exists purely so
 # the restricted target machine's internal npm mirror (download-only, see
-# CLAUDE.md) can `npm pack @kealthas/opencode-qwen-prompt@<version>` instead
+# CLAUDE.md) can `npm pack @kealthas-dev/opencode-qwen-prompt@<version>` instead
 # of the current GitHub-Release-zip transfer.
 #
 # Publishes from a `git archive` export into a clean temp dir, not the
@@ -16,7 +16,7 @@
 # actually needs.
 #
 # Requires you to already be logged in (`npm login`) with publish rights on
-# the @kealthas scope. Bump the version in package.json and commit that
+# the @kealthas-dev scope. Bump the version in package.json and commit that
 # before running this.
 #
 # Usage: ./scripts/publish-npm.sh [extra npm publish flags, e.g. --otp=123456 --dry-run]

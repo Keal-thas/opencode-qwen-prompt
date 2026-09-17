@@ -1,5 +1,5 @@
 {
-  "name": "@kealthas/opencode-qwen-prompt",
+  "name": "@kealthas-dev/opencode-qwen-prompt",
   "version": "1.0.0",
   "private": false,
   "description": "opencode tooling workspace (Qwen prompt override, opencode plugins, module-analysis toolkit, LAN-internal MCP servers), published whole as a single package purely as a download channel for the offline target machine's npm mirror - not a real dependency, not intended for outside reuse.",
