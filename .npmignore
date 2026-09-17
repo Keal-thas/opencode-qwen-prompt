@@ -1,0 +1,8 @@
+# Intentionally empty (must exist, content doesn't matter). Without this
+# file, `npm pack`/`publish` falls back to treating .gitignore as its own
+# exclusion list - which would silently drop docs/opencode-docs-reference/
+# and deploy/models-dev-snapshot.json, both gitignored-but-git-tracked on
+# purpose (see CLAUDE.md) and both things the offline target machine
+# actually needs. scripts/publish-npm.sh's git-archive step already
+# guarantees only git-tracked content reaches npm in the first place, so
+# there's nothing left for this file to actually exclude.
