@@ -16,6 +16,8 @@ A workspace for building on top of `opencode` (the CLI coding agent): a system-p
 | `docs/` | Research notes, a local mirror of opencode's own docs, and a feature-by-feature inventory of this workspace ([docs/feature-points.md](docs/feature-points.md)) |
 | `tests/` | Automated tests covering this workspace's feature points; `./tests/run-all.sh` is the entry point — see `tests/README.md` |
 | `memory/` | Git-tracked project memory |
+| `scripts/` | One-off release/maintenance scripts, e.g. `publish-npm.sh` |
+| `package.json` / `.npmignore` | Package the whole git-tracked tree as `@kealthas-dev/opencode-qwen-prompt` on public npmjs.com, purely as a second download channel for the restricted target machine's internal npm mirror (`npm pack`) alongside the GitHub Release zip below — see CLAUDE.md |
 | `CLAUDE.md` | Working notes for whoever edits this repo further |
 | `TODO.md` | Concrete follow-up work still to be done |
 
