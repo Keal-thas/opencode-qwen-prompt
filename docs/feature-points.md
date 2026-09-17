@@ -16,3 +16,4 @@ A feature-by-feature inventory of this workspace. Index only — details in `fea
 12. [Automated test suite](feature-points/12-test-suite.md) — this session's addition, covers items 1–4 and 6, plus packaging-integrity for items 2–4's shipped tarballs.
 13. [Oracle MCP server](feature-points/13-oracle-mcp-server.md) — passthrough `oracle_query` tool, per-request connection, no-op audit hook. **Tested.**
 14. [Loki MCP server](feature-points/14-loki-mcp-server.md) — read-only `loki_query_range`/`loki_labels`/`loki_label_values` tools. **Tested.**
+15. [opencode memory MCP](feature-points/15-opencode-memory-mcp.md) — wires in the official `@modelcontextprotocol/server-memory` package (config + prompt policy only, no server code of our own). **Tested.**
