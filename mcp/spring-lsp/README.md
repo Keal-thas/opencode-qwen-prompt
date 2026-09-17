@@ -1,0 +1,45 @@
+# spring-lsp mcp server
+
+An MCP server exposing Spring-aware code-intelligence tools — `spring_hover`, `spring_completion`, `spring_document_symbols`, `spring_workspace_symbols`, `spring_diagnostics`, `spring_boot_structure` — by spawning and driving a real [`spring-boot-language-server`](https://github.com/spring-projects/sts4) process (VMware/Spring's own LSP implementation, the same one their VS Code "Spring Boot Tools" extension uses) over its native LSP stdio protocol. Same hand-rolled-against-`@modelcontextprotocol/sdk` pattern and `type: "remote"` deployment shape as `mcp/oracle/`/`mcp/loki/`/`mcp/java-lsp/` — see `mcp/java-lsp/README.md` for the shared design notes (persistent singleton LSP session, stateless-per-request MCP/HTTP layer, `lsp-client.js` duplicated between the two packages rather than shared as a dependency).
+
+This exists because generic Java tooling (jdtls, and opencode's own built-in `jdtls` LSP integration) has no notion of Spring's dependency-injection/annotation-driven wiring — `@Autowired` interface fields resolve to the interface, not the actual injected bean; `@EventListener`/`@Scheduled`/`@RequestMapping` handler methods show zero references even though the framework calls them via reflection; `application.properties`/`.yml` are invisible to it entirely. `spring-boot-language-server` is Spring's own answer to that gap.
+
+## Vendoring
+
+`spring-boot-language-server` isn't published to Maven Central or any other package registry — confirmed against [its own project's FAQ](https://github.com/spring-projects/spring-tools/wiki/FAQ). The only distribution channel is VMware's "Spring Boot Tools" VS Code extension, whose `.vsix` bundles it. `vendor/spring-boot-language-server-*.tar.gz` (committed, **~81MB**) is that jar plus the ~170-jar `lib/` directory its `MANIFEST.MF`'s `Class-Path` requires alongside it — this is a full embedded Spring Boot 4 application (Tomcat, the real Eclipse JDT core, OpenRewrite, jgit, ...), not a single-file fat jar, so both have to ship together. `server.js` extracts it automatically into a sibling directory on first run (gitignored — see the root `.gitignore`); nothing to do manually beyond `npm install`.
+
+**This is, by a wide margin, the largest binary this repository has ever committed** (existing precedent — the `plugins/*/`.tgz tarballs — are ~4KB each; this is ~20,000× that). It was committed anyway per an explicit instruction during this feature's development ("解压到jar直接放项目就行" — put the extracted jar directly in the project), but flagging the actual scale here since "put the jar in" undersold it — it turned out to need the whole dependency tree, not just one small jar. Worth knowing this permanently adds ~81MB to the git history of every future clone (removing the file later doesn't shrink history without a rewrite). See `fetch-spring-boot-language-server.sh` to reproduce or refresh it.
+
+## JDK version
+
+`spring-boot-language-server` itself needs a **JDK 21+** runtime — confirmed directly from the vendored 2.5.0-SNAPSHOT build's own `MANIFEST.MF` (`Java-Version: 21`), not from older STS4 docs (which say 11+ for older releases — this build has moved past that). Set `JAVA_EXECUTABLE` if the `java` on `PATH` isn't 21+; this is separate from whatever JDK your actual Spring Boot project targets.
+
+## Configuration
+
+Copy `.env.example` to `.env` and fill in real values (see `mcp/loki/README.md`'s Run section for process-supervisor options).
+
+- `SPRING_LSP_WORKSPACE_ROOT` — absolute path to the Spring Boot project to analyze
+- `JAVA_EXECUTABLE` — optional, see "JDK version" above
+- `SPRING_LSP_MCP_PORT` — port to listen on (optional, defaults to `8093`, the next free port after `mcp/java-lsp`'s `8092`)
+
+## Run
+
+```bash
+npm install
+npm start
+```
+
+Point opencode at it with a `type: "remote"` entry (see `deploy/opencode.json.example`).
+
+## Status
+
+**Protocol plumbing verified end-to-end against the real, vendored `spring-boot-language-server` 2.5.0-SNAPSHOT** — both manually and by `spring-lsp.test.mjs`: the `initialize` handshake succeeds (this needed a fuller client-capabilities object than jdtls does — see `lsp-client.js`'s comment on `defaultClientCapabilities()`, discovered via a real `NullPointerException` from the server during development, not guessed); the auto-extraction of the vendored tarball works; `.java`/`.properties` files can be opened and synced; `spring_boot_structure`'s real `sts/spring-boot/structure` custom command round-trips cleanly; `spring_diagnostics`/`spring_completion` on a `.properties` file return cleanly without crashing the server.
+
+**Not verified: actual Spring-aware semantic richness.** Every tool call in testing was run against a bare loose `.java` file + `application.properties` with no real Maven/Gradle project and no resolved `spring-boot-starter-*` dependencies — against that fixture, every one of this server's own richer results (`spring_hover`/`spring_completion` finding real config properties, `spring_boot_structure` finding real beans, even plain `spring_document_symbols`) comes back an **empty array**, not an error. Two distinct reasons, both discovered during development, neither fixed here:
+
+1. **No real Spring Boot dependencies on the classpath** — `spring_hover`/`spring_completion`'s config-property awareness comes from the project's own resolved `spring-configuration-metadata.json` (inside its actual `spring-boot-starter-*` jars). A fixture project with no such dependencies has none to offer.
+2. **This server expects a paired jdtls providing classpath/project info via a "classpath listener" mechanism**, which VS Code's Java extension pack wires up between its `redhat.java` (jdtls) and `vmware.vscode-spring-boot` extensions. Standalone, `SpringSymbolIndex`/`JdtLsProjectCache` time out waiting for that listener (visible directly in this server's own stderr logs: `TimeoutException ... at SpringSymbolIndex.getDocumentSymbolsFromMetamodelIndex`) and degrade to empty results rather than erroring. **This pairing is not implemented in this package** — `mcp/java-lsp`'s separate jdtls process and this one currently run fully independently, each unaware of the other. Wiring them together (so `spring_*` tools get real classpath-aware results) is real follow-up work, not attempted here — see `mcp/TODO.md`.
+
+**Not yet wired into `tests/run-in-container.sh` / the docker/ sandbox** — same reason as `mcp/java-lsp` (no JDK in the sandbox's base image; see that package's README). Run `spring-lsp.test.mjs` directly on a machine with a JDK 21+ `java` for now.
+
+**To actually see this server's Spring-specific value**, point `SPRING_LSP_WORKSPACE_ROOT` at a real Maven/Gradle Spring Boot project with its dependencies already resolved (`mvn dependency:resolve` / a completed Gradle sync) — not attempted here, and the classpath-listener gap above may still limit results even then.

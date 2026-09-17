@@ -21,6 +21,16 @@
       "type": "remote",
       "url": "http://localhost:8091/mcp",
       "enabled": false
+    },
+    "java-lsp": {
+      "type": "remote",
+      "url": "http://localhost:8092/mcp",
+      "enabled": false
+    },
+    "spring-lsp": {
+      "type": "remote",
+      "url": "http://localhost:8093/mcp",
+      "enabled": false
     }
   }
 }
