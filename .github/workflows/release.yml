@@ -18,6 +18,18 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Set up Node for npm trusted publishing
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Publish to npm
+        run: |
+          npm install -g npm@latest # trusted publishing needs npm >= 11.5.1
+          npm pkg set version="${GITHUB_REF_NAME#v}" # tag is the single source of truth for the published version, not the committed package.json
+          npm publish --access public
+
       - name: Build zip with .git included
         run: |
           repo="${GITHUB_REPOSITORY##*/}"
@@ -32,15 +44,3 @@ jobs:
         with:
           files: ${{ env.ASSET_PATH }}
           generate_release_notes: true
-
-      - name: Set up Node for npm trusted publishing
-        uses: actions/setup-node@v6
-        with:
-          node-version: "24"
-          registry-url: "https://registry.npmjs.org"
-
-      - name: Publish to npm
-        run: |
-          npm install -g npm@latest # trusted publishing needs npm >= 11.5.1
-          npm pkg set version="${GITHUB_REF_NAME#v}" # tag is the single source of truth for the published version, not the committed package.json
-          npm publish --access public
