@@ -4,14 +4,14 @@
 // this test can mock: LSP is a genuinely stateful protocol (project
 // indexing, incremental document sync), and the whole point of this
 // package is that it talks to a real jdtls process - see
-// mcp/loki/loki.test.mjs for the same reasoning applied to a different
+// mcp-servers/loki/loki.test.mjs for the same reasoning applied to a different
 // real backend.
 //
 // Not yet wired into tests/run-in-container.sh / the docker/ sandbox - the
 // sandbox's image (docker/Dockerfile, `FROM node:22-bookworm`) has no JDK
 // or jdtls installed, and adding a jdtls download to the image wasn't done
-// here (see mcp/TODO.md). Run this directly on a machine with jdtls
-// installed: `cd mcp/java-lsp && npm install && node --test java-lsp.test.mjs`.
+// here (see mcp-servers/TODO.md). Run this directly on a machine with jdtls
+// installed: `cd mcp-servers/java-lsp && npm install && node --test java-lsp.test.mjs`.
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { dirname, join } from "node:path";

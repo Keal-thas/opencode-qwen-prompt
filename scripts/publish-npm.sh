@@ -6,7 +6,7 @@
 # of the current GitHub-Release-zip transfer.
 #
 # Publishes from a `git archive` export into a clean temp dir, not the
-# working directory - so untracked files (a real mcp/*/.env someone happens
+# working directory - so untracked files (a real mcp-servers/*/.env someone happens
 # to have sitting around, scratch output, etc.) can never end up in the
 # published tarball regardless of local .gitignore state. This also sidesteps
 # npm's default packing rule of falling back to .gitignore when there's no

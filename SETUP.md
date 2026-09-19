@@ -130,21 +130,21 @@ Merge into the same `plugin` array as step 4's entry (if installed) rather than 
 
 ## 6. (Optional) Add the Oracle MCP server
 
-`mcp/oracle/` needs its npm dependencies (`@modelcontextprotocol/sdk`, `oracledb`) installed — this machine has no public internet, but does have a working internal npm registry (a full mirror of public npm), so a plain `npm install` below resolves them from there (this repo doesn't vendor them, unlike the plugins in steps 4/5, which needed no dependencies at all). If `npm install` unexpectedly fails here, report it rather than working around by guessing at a substitute package or an unofficial mirror.
+`mcp-servers/oracle/` needs its npm dependencies (`@modelcontextprotocol/sdk`, `oracledb`) installed — this machine has no public internet, but does have a working internal npm registry (a full mirror of public npm), so a plain `npm install` below resolves them from there (this repo doesn't vendor them, unlike the plugins in steps 4/5, which needed no dependencies at all). If `npm install` unexpectedly fails here, report it rather than working around by guessing at a substitute package or an unofficial mirror.
 
-The Oracle MCP server is wired as `type: "remote"` in `opencode.json` (see `mcp/oracle/README.md`'s Design section for why): opencode connects to it as an already-running HTTP endpoint rather than spawning and owning it. The server process has to be started independently, before opencode ever tries to use it — a persistent terminal/session running `npm start`, a process supervisor, or a container, whichever fits this machine. opencode itself never starts, stops, or restarts it.
+The Oracle MCP server is wired as `type: "remote"` in `opencode.json` (see `mcp-servers/oracle/README.md`'s Design section for why): opencode connects to it as an already-running HTTP endpoint rather than spawning and owning it. The server process has to be started independently, before opencode ever tries to use it — a persistent terminal/session running `npm start`, a process supervisor, or a container, whichever fits this machine. opencode itself never starts, stops, or restarts it.
 
 Copy the server directory in:
 
 ```bash
-mkdir -p "$CONFIG_DIR/mcp"
-cp -r "$SRC_DIR/mcp/oracle" "$CONFIG_DIR/mcp/oracle"
+mkdir -p "$CONFIG_DIR/mcp-servers"
+cp -r "$SRC_DIR/mcp-servers/oracle" "$CONFIG_DIR/mcp-servers/oracle"
 ```
 
-Start the server with the real Oracle credentials as environment variables (`ORACLE_CONNECT_STRING`, `ORACLE_USER`, `ORACLE_PASSWORD` — see `mcp/oracle/README.md`'s Configuration section), and `ORACLE_MCP_PORT` too if the default port (`8090`) isn't free:
+Start the server with the real Oracle credentials as environment variables (`ORACLE_CONNECT_STRING`, `ORACLE_USER`, `ORACLE_PASSWORD` — see `mcp-servers/oracle/README.md`'s Configuration section), and `ORACLE_MCP_PORT` too if the default port (`8090`) isn't free:
 
 ```bash
-cd "$CONFIG_DIR/mcp/oracle" && npm install && npm start
+cd "$CONFIG_DIR/mcp-servers/oracle" && npm install && npm start
 ```
 
 Leave that running (in its own terminal, or under whatever supervisor was chosen above), then add this to `opencode.json`'s top level (merge, don't replace, same rule as step 2) — `deploy/opencode.json.example` already carries this same block with a placeholder port, `enabled: false`:
@@ -161,23 +161,23 @@ Leave that running (in its own terminal, or under whatever supervisor was chosen
 
 Two things need real values that this repo or an executing agent should never guess — ask the human running this: the real `ORACLE_CONNECT_STRING`/`ORACLE_USER`/`ORACLE_PASSWORD` for whatever internal Oracle instance this is meant to reach, and the port, only if `ORACLE_MCP_PORT` had to be overridden because `8090` was taken.
 
-`oracle_query` is a full passthrough (no read-only enforcement — see `mcp/oracle/README.md`) by deliberate design, not an oversight; unrelated to this deployment step.
+`oracle_query` is a full passthrough (no read-only enforcement — see `mcp-servers/oracle/README.md`) by deliberate design, not an oversight; unrelated to this deployment step.
 
 ## 7. (Optional) Add the Loki MCP server
 
-Same shape as step 6: `mcp/loki/` needs `@modelcontextprotocol/sdk` installed via `npm install` against the internal registry (one dependency instead of Oracle's two — no driver like `oracledb`, see `mcp/loki/README.md`'s Design section for why).
+Same shape as step 6: `mcp-servers/loki/` needs `@modelcontextprotocol/sdk` installed via `npm install` against the internal registry (one dependency instead of Oracle's two — no driver like `oracledb`, see `mcp-servers/loki/README.md`'s Design section for why).
 
 Wired as `type: "remote"` in `opencode.json`, same reasoning as step 6 — opencode connects to an already-running HTTP endpoint. Copy the directory in:
 
 ```bash
-mkdir -p "$CONFIG_DIR/mcp"
-cp -r "$SRC_DIR/mcp/loki" "$CONFIG_DIR/mcp/loki"
+mkdir -p "$CONFIG_DIR/mcp-servers"
+cp -r "$SRC_DIR/mcp-servers/loki" "$CONFIG_DIR/mcp-servers/loki"
 ```
 
-Start the server with `LOKI_BASE_URL` pointing at the real internal Loki instance (see `mcp/loki/README.md`'s Configuration section — `LOKI_USERNAME`/`LOKI_PASSWORD`/`LOKI_ORG_ID` too, only if that Loki instance actually requires them; unlike Oracle's credentials, all of these are optional), and `LOKI_MCP_PORT` if the default port (`8091`) isn't free:
+Start the server with `LOKI_BASE_URL` pointing at the real internal Loki instance (see `mcp-servers/loki/README.md`'s Configuration section — `LOKI_USERNAME`/`LOKI_PASSWORD`/`LOKI_ORG_ID` too, only if that Loki instance actually requires them; unlike Oracle's credentials, all of these are optional), and `LOKI_MCP_PORT` if the default port (`8091`) isn't free:
 
 ```bash
-cd "$CONFIG_DIR/mcp/loki" && npm install && npm start
+cd "$CONFIG_DIR/mcp-servers/loki" && npm install && npm start
 ```
 
 Leave that running, then add this to `opencode.json`'s top level (merge, don't replace) — `deploy/opencode.json.example` already carries this same block with a placeholder port, `enabled: false`:
@@ -194,7 +194,7 @@ Leave that running, then add this to `opencode.json`'s top level (merge, don't r
 
 One thing needs a real value that this repo or an executing agent should never guess — ask the human running this: the real `LOKI_BASE_URL` for whatever internal Loki instance this is meant to reach.
 
-`loki_query_range` is a full passthrough (any LogQL, no restriction — see `mcp/loki/README.md`) by deliberate design; unrelated to this deployment step.
+`loki_query_range` is a full passthrough (any LogQL, no restriction — see `mcp-servers/loki/README.md`) by deliberate design; unrelated to this deployment step.
 
 ## 8. (Optional) Add the Memory MCP server
 
@@ -254,7 +254,7 @@ If you installed either plugin (steps 4/5) and `opencode run` errors out instead
 
 ## 10. Cleanup (optional)
 
-`$SRC_DIR` (the extracted zip) and the original zip file can be deleted once `$CONFIG_DIR/system-prompt.txt`, `$CACHE_DIR/packages/opencode-system-prompt-tools@1.0.0/` (if installed), `$CACHE_DIR/packages/opencode-hook-logger@1.0.0/` (if installed), `$CACHE_DIR/packages/opencode-llm-review-gate@1.0.0/` (if installed), `$CONFIG_DIR/mcp/oracle/` (if installed), `$CONFIG_DIR/mcp/loki/` (if installed), and the globally-installed `@modelcontextprotocol/server-memory` (if installed, step 8 — nothing under `$SRC_DIR` to clean up for it either way) are in place — those are the only files that matter going forward (steps 4/5 extract straight into `$CACHE_DIR`, they don't leave a copy under `$CONFIG_DIR` the way `system-prompt.txt` does). Ask the human running this before deleting anything, don't assume.
+`$SRC_DIR` (the extracted zip) and the original zip file can be deleted once `$CONFIG_DIR/system-prompt.txt`, `$CACHE_DIR/packages/opencode-system-prompt-tools@1.0.0/` (if installed), `$CACHE_DIR/packages/opencode-hook-logger@1.0.0/` (if installed), `$CACHE_DIR/packages/opencode-llm-review-gate@1.0.0/` (if installed), `$CONFIG_DIR/mcp-servers/oracle/` (if installed), `$CONFIG_DIR/mcp-servers/loki/` (if installed), and the globally-installed `@modelcontextprotocol/server-memory` (if installed, step 8 — nothing under `$SRC_DIR` to clean up for it either way) are in place — those are the only files that matter going forward (steps 4/5 extract straight into `$CACHE_DIR`, they don't leave a copy under `$CONFIG_DIR` the way `system-prompt.txt` does). Ask the human running this before deleting anything, don't assume.
 
 ## Report back
 

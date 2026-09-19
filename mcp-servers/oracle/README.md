@@ -38,7 +38,7 @@ Starts a persistent HTTP server on `ORACLE_MCP_PORT` (default `8090`), serving M
 docker/dev.sh run --rm opencode-dev bash
 ```
 
-`ORACLE_CONNECT_STRING`/`ORACLE_USER`/`ORACLE_PASSWORD` are already set inside that shell — `cd mcp/oracle && npm install && npm start`, then hit `http://localhost:8090/mcp` from an MCP client or `curl`. First time on a fresh machine/volume, the `run` command itself takes 1-3 minutes before the shell opens (Oracle's first-time DB init).
+`ORACLE_CONNECT_STRING`/`ORACLE_USER`/`ORACLE_PASSWORD` are already set inside that shell — `cd mcp-servers/oracle && npm install && npm start`, then hit `http://localhost:8090/mcp` from an MCP client or `curl`. First time on a fresh machine/volume, the `run` command itself takes 1-3 minutes before the shell opens (Oracle's first-time DB init).
 
 `oracle.test.mjs` (see `tests/README.md`) doesn't need this manual dance — it starts and stops its own `server.js` process on its own port as part of the test run.
 

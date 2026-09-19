@@ -1,6 +1,6 @@
 // Requires a JDK 21+ `java` on PATH (or JAVA_EXECUTABLE pointed at one) -
 // spring-boot-language-server's own MANIFEST.MF declares `Java-Version: 21`.
-// Not something this test can mock, same reasoning as mcp/java-lsp/java-lsp.test.mjs:
+// Not something this test can mock, same reasoning as mcp-servers/java-lsp/java-lsp.test.mjs:
 // this package's whole point is driving a real spring-boot-language-server
 // process.
 //
@@ -19,7 +19,7 @@
 // here - see README.md's Status section for what that would take).
 //
 // Not yet wired into tests/run-in-container.sh / the docker/ sandbox - see
-// mcp/java-lsp/java-lsp.test.mjs's header for why (no JDK in that image).
+// mcp-servers/java-lsp/java-lsp.test.mjs's header for why (no JDK in that image).
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { dirname, join } from "node:path";

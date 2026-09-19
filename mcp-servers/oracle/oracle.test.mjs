@@ -5,7 +5,7 @@
 // the real oracledb round-trip, including the per-request-connection /
 // autoCommit design decisions server.js makes. Lives here (not under
 // tests/) so Node's module resolution finds this package's own
-// node_modules - run via `node --test mcp/oracle/oracle.test.mjs` after
+// node_modules - run via `node --test mcp-servers/oracle/oracle.test.mjs` after
 // `npm install` in this directory (see tests/run-in-container.sh).
 //
 // server.js is now a persistent HTTP server (opencode connects to it as
@@ -128,7 +128,7 @@ test("a query against a nonexistent table returns a clean error, not a crash", a
 
 test("a connection failure returns a clean error, not an MCP protocol crash", async () => {
   // Regression test for the bug found while first verifying this server
-  // (see git history / mcp/oracle/README.md): oracledb.getConnection()
+  // (see git history / mcp-servers/oracle/README.md): oracledb.getConnection()
   // must be inside executeQuery()'s try block, or a connection failure
   // surfaces as a raw McpError instead of a normal {success: false} tool
   // result. Runs its own server on a separate port with a bad password,

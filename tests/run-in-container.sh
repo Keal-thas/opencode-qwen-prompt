@@ -25,19 +25,19 @@ node --test tests/unit/*.test.mjs
 echo
 echo "== analyze-modules.mjs integration test =="
 # toolkits/module-analysis/ is its own npm package (see its package.json) -
-# install @opencode-ai/sdk before driving it, same as mcp/oracle below.
+# install @opencode-ai/sdk before driving it, same as mcp-servers/oracle below.
 (cd toolkits/module-analysis && npm install --no-audit --no-fund)
 node tests/integration/analyze-modules.test.mjs
 
 echo
 echo "== oracle MCP server integration test (real Oracle instance) =="
-# mcp/oracle/ is its own npm package - its test lives alongside it (not
+# mcp-servers/oracle/ is its own npm package - its test lives alongside it (not
 # under tests/) so Node's module resolution finds its node_modules.
-(cd mcp/oracle && npm install --no-audit --no-fund && node --test oracle.test.mjs)
+(cd mcp-servers/oracle && npm install --no-audit --no-fund && node --test oracle.test.mjs)
 
 echo
 echo "== loki MCP server integration test (real Loki instance) =="
-(cd mcp/loki && npm install --no-audit --no-fund && node --test loki.test.mjs)
+(cd mcp-servers/loki && npm install --no-audit --no-fund && node --test loki.test.mjs)
 
 echo
 echo "== memory MCP server integration test (official @modelcontextprotocol/server-memory package) =="

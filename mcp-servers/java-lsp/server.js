@@ -28,7 +28,7 @@ const LINE_CHAR_DESCRIPTION =
   "0-indexed, per the LSP spec (not the 1-indexed line numbers most editors display) - line 0 is the file's first line, character 0 is the first column.";
 
 // One jdtls process per server lifetime, not per request or per tool call -
-// unlike mcp/oracle's/mcp/loki's per-request model, LSP is a genuinely
+// unlike mcp-servers/oracle's/mcp-servers/loki's per-request model, LSP is a genuinely
 // stateful session (project indexing alone easily takes seconds; redoing
 // initialize on every tool call would make this unusably slow, and jdtls
 // doesn't support concurrent instances against the same -data dir anyway).
@@ -261,7 +261,7 @@ const httpServer = http.createServer(async (req, res) => {
   }
 
   // Stateless at the MCP/HTTP layer only (fresh Server+transport per
-  // request, same as mcp/oracle and mcp/loki) - the jdtls process itself is
+  // request, same as mcp-servers/oracle and mcp-servers/loki) - the jdtls process itself is
   // the one genuinely stateful thing here, and it's a module-level
   // singleton via getClient(), independent of this per-request pair.
   const mcpServer = createMcpServer();
