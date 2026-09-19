@@ -1,4 +1,4 @@
-// Static checks on the config/docs that ship the Qwen prompt override.
+// Static checks on the config/docs that ship the system-prompt override.
 // No opencode install needed - these just read files and parse JSON/markdown.
 import { test } from "node:test";
 import assert from "node:assert/strict";

@@ -1,6 +1,6 @@
 # opencode tooling workspace
 
-A workspace for building on top of `opencode` (the CLI coding agent): a system-prompt override for a specific Qwen deployment, custom opencode plugins, a script for using opencode to analyze a large codebase, and MCP servers for LAN-internal ops tooling plus LSP-backed Java/Spring code intelligence. See "Repo layout" below for the rest. (Renamed from `opencode-qwen-prompt` on 2026-09-19 — see [CLAUDE.md](CLAUDE.md) for why.)
+A workspace for building on top of `opencode` (the CLI coding agent): a system-prompt override, custom opencode plugins, a script for using opencode to analyze a large codebase, and MCP servers for LAN-internal ops tooling plus LSP-backed Java/Spring code intelligence. See "Repo layout" below for the rest. (Renamed from `opencode-qwen-prompt` on 2026-09-19 — see [CLAUDE.md](CLAUDE.md) for why.)
 
 [SETUP.md](SETUP.md) has the prompt override's setup instructions, written to be handed directly to an agent and executed step by step (the target machine is network-restricted, not something to do by hand repeatedly). This README is the human-readable explanation of what it does and why. [SETUP-notes.zh.md](SETUP-notes.zh.md) is a separate Chinese walkthrough of the same steps, for a human watching the deployment — not meant to be executed literally (hence not named `SETUP.zh.md`).
 
@@ -10,8 +10,8 @@ A workspace for building on top of `opencode` (the CLI coding agent): a system-p
 |---|---|
 | `deploy/` | The opencode deployment payload for the target machine — prompt override, full `opencode.json` config (incl. MCP wiring), and the offline models catalog snapshot |
 | `docker/` | Local Docker sandbox for exercising this workspace's prompt/plugins against a real opencode install, without touching your own machine's config; see `docker/docker-notes.md` |
-| `plugins/` | Three independent opencode plugins, one subdirectory/npm package each: `system-prompt-tools/` (the Qwen override's diagnostic plugin) plus `hook-logger/`/`llm-review-gate/` (general "writing tools for opencode", not the Qwen override) |
-| `toolkits/` | Standalone scripts that drive opencode as a client via `@opencode-ai/sdk` — `module-analysis/` (generates an architecture map of a large codebase, own thing, not tied to the Qwen setup; see `toolkits/module-analysis/README.md`) so far, more may be added |
+| `plugins/` | Three independent opencode plugins, one subdirectory/npm package each: `system-prompt-tools/` (the prompt override's diagnostic plugin) plus `hook-logger/`/`llm-review-gate/` (general "writing tools for opencode", not the prompt override) |
+| `toolkits/` | Standalone scripts that drive opencode as a client via `@opencode-ai/sdk` — `module-analysis/` (generates an architecture map of a large codebase, own thing, not tied to the prompt override; see `toolkits/module-analysis/README.md`) so far, more may be added |
 | `mcp-servers/` | MCP servers: LAN-internal ops tooling (`oracle/`, `loki/`), the official memory server wiring, and LSP-backed Java/Spring code intelligence (`java-lsp/`, `spring-lsp/`); see `mcp-servers/TODO.md` |
 | `docs/` | Research notes, a local mirror of opencode's own docs, a feature-by-feature inventory of this workspace ([docs/feature-points.md](docs/feature-points.md)), and an index of every generated/vendored file in the repo ([docs/generated-files.md](docs/generated-files.md)) |
 | `tests/` | Automated tests covering this workspace's feature points; `./tests/run-all.sh` is the entry point — see `tests/README.md` |
@@ -21,7 +21,7 @@ A workspace for building on top of `opencode` (the CLI coding agent): a system-p
 | `CLAUDE.md` | Working notes for whoever edits this repo further |
 | `TODO.md` | Concrete follow-up work still to be done |
 
-## Qwen prompt override
+## System-prompt override
 
 opencode overrides the system prompt it sends to a model using its own config — no plugin required for the override itself.
 
@@ -36,7 +36,7 @@ opencode overrides the system prompt it sends to a model using its own config �
 One subdirectory per plugin, each its own npm package (`package.json` + the `.ts` source), shipped as a committed, pre-packed tarball — mirroring `mcp-servers/`'s one-thing-per-subdirectory shape:
 
 - `system-prompt-tools/` — optional plugin that dumps the fully-assembled system prompt to a local file on every request. Diagnostic only, not required, but the only way to confirm the override is actually reaching the real model. See `docs/feature-points/02-system-prompt-tools-plugin.md`.
-- `hook-logger/` / `llm-review-gate/` — general-purpose opencode tooling, unrelated to the Qwen override, independently installable from each other. See `docs/feature-points/03-hook-logger-plugin.md` / `04-llm-review-gate-plugin.md`.
+- `hook-logger/` / `llm-review-gate/` — general-purpose opencode tooling, unrelated to the prompt override, independently installable from each other. See `docs/feature-points/03-hook-logger-plugin.md` / `04-llm-review-gate-plugin.md`.
 
 Installed by extracting the tarball by hand into opencode's own package cache and referencing it in `opencode.json`'s `plugin` array by a bare `name@version` — no registry, no path (SETUP.md steps 4/5). After editing a plugin's source, `npm pack` in its directory regenerates the tarball; `tests/unit/plugins-tarball.test.mjs` fails the build if they drift.
 
