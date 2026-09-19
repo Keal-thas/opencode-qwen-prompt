@@ -6,7 +6,7 @@
 name: opencode-toolkit-loki
 
 services:
-  # Real Loki instance backing mcp/loki/'s tests and interactive use.
+  # Real Loki instance backing mcp-servers/loki/'s tests and interactive use.
   # Brought up once per machine (see docker/dev.sh) rather than every
   # worktree's own opencode-dev bringing up its own copy.
   #

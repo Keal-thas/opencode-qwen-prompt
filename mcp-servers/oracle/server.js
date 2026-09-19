@@ -19,7 +19,7 @@ if (!ORACLE_CONNECT_STRING || !ORACLE_USER || !ORACLE_PASSWORD) {
 // plugins/llm-review-gate.ts's tool.execute.before gate) can plug in here
 // later without touching executeQuery(). Until then this is a no-op that
 // allows everything - oracle_query is a full passthrough by design, not an
-// oversight. See mcp/oracle/README.md for why.
+// oversight. See mcp-servers/oracle/README.md for why.
 async function auditQuery(sql) {
   return { allow: true };
 }

@@ -34,7 +34,7 @@ for `@opencode-ai/sdk` (see Usage below).
   — modules that already have a non-empty output file are skipped, so
   it's safe to interrupt and re-run.
 - `package.json` — this directory's own npm package (its only
-  dependency is `@opencode-ai/sdk`), the same pattern `mcp/oracle/`
+  dependency is `@opencode-ai/sdk`), the same pattern `mcp-servers/oracle/`
   uses for its own SDK dependency.
 
 ## Why the prompt looks like this

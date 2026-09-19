@@ -46,7 +46,7 @@ function resolveLanguageServerDir() {
 const LINE_CHAR_DESCRIPTION =
   "0-indexed, per the LSP spec (not the 1-indexed line numbers most editors display) - line 0 is the file's first line, character 0 is the first column.";
 
-// Same reasoning as mcp/java-lsp/server.js: one persistent language-server
+// Same reasoning as mcp-servers/java-lsp/server.js: one persistent language-server
 // process for the server's whole lifetime (module-level singleton), not
 // one per request - see that file's comments for why. Copied rather than
 // shared for the same reason lsp-client.js is copied - see both READMEs.
@@ -133,7 +133,7 @@ function createMcpServer() {
       },
       {
         name: "spring_document_symbols",
-        description: "List symbols in one file, structurally (same shape as mcp/java-lsp's java_document_symbols, via this server's own JDT-based parsing).",
+        description: "List symbols in one file, structurally (same shape as mcp-servers/java-lsp's java_document_symbols, via this server's own JDT-based parsing).",
         inputSchema: { type: "object", properties: { file: filePathProp }, required: ["file"] },
       },
       {

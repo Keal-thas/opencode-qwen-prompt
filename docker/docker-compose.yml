@@ -55,7 +55,7 @@ services:
     # either. See docs/lessons-learned.md for the measurements behind
     # dropping these volumes.
     #
-    # ORACLE_*/LOKI_BASE_URL pre-wire mcp/oracle/ and mcp/loki/ to the
+    # ORACLE_*/LOKI_BASE_URL pre-wire mcp-servers/oracle/ and mcp-servers/loki/ to the
     # sibling `oracle`/`loki` services in docker-compose.oracle.yml/
     # docker-compose.loki.yml (matching the env var names each server.js
     # reads) - no per-session setup needed. Reachable by service-name DNS
