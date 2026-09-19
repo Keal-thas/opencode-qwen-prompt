@@ -16,6 +16,12 @@ node_modules/
 # server's .env.example documents the shape without real values.
 mcp/**/.env
 
+# The extracted spring-boot-language-server (jar + ~170 lib/ jars, ~85MB
+# uncompressed) - mcp/spring-lsp/server.js extracts vendor/*.tar.gz into
+# this directory lazily on first run (see resolveLanguageServerDir() in
+# server.js). Only the tar.gz itself is committed.
+mcp/spring-lsp/vendor/spring-boot-language-server-*/
+
 # Still git-tracked and committed normally (see docs/fetch-opencode-docs.sh) -
 # this entry doesn't untrack anything. It only makes ripgrep-based tools
 # (grep/glob in both Claude Code and opencode itself) skip this directory

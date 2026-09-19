@@ -17,3 +17,5 @@ A feature-by-feature inventory of this workspace. Index only — details in `fea
 13. [Oracle MCP server](feature-points/13-oracle-mcp-server.md) — passthrough `oracle_query` tool, per-request connection, no-op audit hook. **Tested.**
 14. [Loki MCP server](feature-points/14-loki-mcp-server.md) — read-only `loki_query_range`/`loki_labels`/`loki_label_values` tools. **Tested.**
 15. [opencode memory MCP](feature-points/15-opencode-memory-mcp.md) — wires in the official `@modelcontextprotocol/server-memory` package (config + prompt policy only, no server code of our own). **Tested.**
+16. [java-lsp MCP server](feature-points/16-java-lsp-mcp-server.md) — jdtls-backed Java code-intelligence tools. **Tested** (real jdtls, manual — not yet in `./tests/run-all.sh`).
+17. [spring-lsp MCP server](feature-points/17-spring-lsp-mcp-server.md) — spring-boot-language-server-backed Spring-aware tools. **Protocol-tested only** — Spring-specific semantic richness not verified, see its feature-point doc.
