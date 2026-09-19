@@ -10,8 +10,6 @@ A minimal MCP server exposing one tool, `oracle_query`, that runs an arbitrary S
 - **One Oracle connection per request**, opened and closed within the call, not pooled. A stray DML statement can't outlive its request (closing a session with uncommitted work rolls it back); concurrent calls never race on the same session; a session killed on the DB side only fails the one request in flight. Cost: connection-setup latency on every call — fine for a low-QPS internal tool, not for anything latency-sensitive.
 - **`autoCommit: true`** on every execute — otherwise a successful UPDATE/INSERT would report no error and then silently roll back the moment its connection closes right after (immediately, given one connection per request).
 
-See [`Keal-thas/oracle-mcp-server-nodejs`](https://github.com/Keal-thas/oracle-mcp-server-nodejs) for the earlier, simpler version this replaces — a single long-lived shared connection, no audit-hook extension point.
-
 ## Configuration
 
 Copy `.env.example` to `.env` and fill in real values, or set them however the process supervisor that starts this server (see Run below) is configured. A `remote` MCP entry in `opencode.json` carries no `environment` field (just a `url`) — opencode never starts this process, so wherever it actually gets started is what needs these set:
@@ -46,4 +44,4 @@ docker/dev.sh run --rm opencode-dev bash
 
 **Verified end-to-end and automated.** `oracle.test.mjs` covers tool listing, a plain SELECT, a write surviving the per-request connection close (autoCommit), a nonexistent-table error path, and a connection-failure regression (an earlier bug crashed the MCP protocol instead of returning a clean error) — driven over the real Streamable HTTP transport against the sandbox's `oracle` service. Wired into `deploy/opencode.json.example` (`mcp.oracle`, `type: "remote"`, `enabled: false` — see SETUP.md step 5). The `auditQuery()` hook remains an intentional no-op until a rule-based or LLM-based check is designed for it.
 
-Converted from `local`/stdio to `type: "remote"`/Streamable HTTP 2026-09-14 (see Design above for why) — verified against the actually-pinned SDK version (`@modelcontextprotocol/sdk@1.30.0`, per `package-lock.json`) by reading its real compiled `.d.ts`/`.js` rather than assuming the API from docs.
+The Streamable HTTP implementation is verified against the pinned SDK version (`@modelcontextprotocol/sdk@1.30.0`, per `package-lock.json`) by reading its compiled `.d.ts`/`.js`, not only by following docs examples.

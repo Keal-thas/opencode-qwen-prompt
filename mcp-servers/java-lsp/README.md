@@ -2,7 +2,7 @@
 
 An MCP server exposing real, semantic Java code-intelligence tools — `java_definition`, `java_references`, `java_hover`, `java_implementation`, `java_document_symbols`, `java_workspace_symbols`, `java_diagnostics` — by spawning and driving a real [jdtls](https://github.com/eclipse-jdtls/eclipse.jdt.ls) (Eclipse JDT Language Server) process over its native LSP stdio protocol. Built directly against `@modelcontextprotocol/sdk`, same hand-rolled pattern as `mcp-servers/oracle/`/`mcp-servers/loki/`. Speaks MCP over Streamable HTTP as a persistent process opencode connects to (`type: "remote"`), same shape as those two.
 
-This exists because opencode's own built-in `jdtls` LSP integration only auto-detects a `java` on `PATH` (`which("java")` + a version check) with no way to point it at a different JDK for the actual server process — see the root `CLAUDE.md`/session notes this was built from. Owning the spawn logic here means this server decides exactly which `java`/`jdtls` to launch, independent of whatever's on `PATH` for the agent's own shell commands.
+This exists because opencode's own built-in `jdtls` LSP integration only auto-detects a `java` on `PATH` (`which("java")` + a version check) with no way to point it at a different JDK for the actual server process. Owning the spawn logic here means this server decides exactly which `java`/`jdtls` to launch, independent of whatever's on `PATH` for the agent's own shell commands.
 
 ## Design, and why it looks the way it does
 
@@ -14,9 +14,9 @@ This exists because opencode's own built-in `jdtls` LSP integration only auto-de
 
 ## JDK version
 
-jdtls itself needs a JDK 21+ runtime to launch — that's a property of whatever `JDTLS_COMMAND` resolves to (its `JAVA_HOME`), completely separate from what your actual project needs to compile/run against. If your project targets an older Java version, set `JAVA_EXECUTABLE` (jdtls's own `--java-executable` flag) to point jdtls at the JDK your project should be analyzed with, without touching the JDK that launches jdtls itself or your shell's default `java` on `PATH`. This is the whole reason this package exists as a standalone MCP server rather than using opencode's built-in `jdtls` LSP — that built-in integration only checks `PATH` and has no equivalent of `--java-executable` (see the session notes this was built from).
+jdtls itself needs a JDK 21+ runtime to launch — that's a property of whatever `JDTLS_COMMAND` resolves to (its `JAVA_HOME`), completely separate from what your actual project needs to compile/run against. If your project targets an older Java version, set `JAVA_EXECUTABLE` (jdtls's own `--java-executable` flag) to point jdtls at the JDK your project should be analyzed with, without touching the JDK that launches jdtls itself or your shell's default `java` on `PATH`. This is the whole reason this package exists as a standalone MCP server rather than using opencode's built-in `jdtls` LSP — that built-in integration only checks `PATH` and has no equivalent of `--java-executable`.
 
-`jdtls` itself is not vendored here — install it however makes sense for the machine this runs on (e.g. `brew install jdtls` on macOS; verified against `jdtls` 1.61.0 during development, which pulls its own `openjdk` as a Homebrew dependency, so it doesn't depend on any project JDK being on `PATH` at all). Point `JDTLS_COMMAND` at an absolute path if it isn't on `PATH`.
+`jdtls` itself is not vendored here — install it however makes sense for the machine this runs on (e.g. `brew install jdtls` on macOS). This package is verified against `jdtls` 1.61.0, whose Homebrew formula pulls its own `openjdk` dependency, so it does not depend on any project JDK being on `PATH`. Point `JDTLS_COMMAND` at an absolute path if it is not on `PATH`.
 
 ## Configuration
 
