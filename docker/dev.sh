@@ -46,6 +46,6 @@ if command -v sha256sum >/dev/null 2>&1; then
 else
   WORKTREE_HASH="$(pwd | shasum -a 256 | cut -c1-8)"
 fi
-export COMPOSE_PROJECT_NAME="opencode-qwen-prompt-${WORKTREE_HASH}"
+export COMPOSE_PROJECT_NAME="opencode-toolkit-${WORKTREE_HASH}"
 
 exec docker compose -f docker/docker-compose.yml "$@"

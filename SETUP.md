@@ -1,6 +1,6 @@
 # Setup instructions (for an agent to execute)
 
-You are being asked to configure the local opencode installation on this machine to use a custom system prompt instead of the built-in default. This environment is git-bash on Windows with no public internet access (an internal npm registry is reachable for downloading dependencies, e.g. in steps 6/7 — but not for publishing anything). The repo itself gets here one of two ways: (a) downloaded elsewhere as a zip and transferred over, already extracted, or (b) pulled directly through the internal npm mirror with `npm pack @kealthas-dev/opencode-qwen-prompt` and extracted (`tar -xzf kealthas-dev-opencode-qwen-prompt-*.tgz`), landing in a `package/` directory — verified working 2026-09-18. Either way you end up with one plain extracted directory; step 0 below just needs to find it, whichever name it has. Do not attempt `git clone` or any other network fetch beyond that. Follow these steps in order, running the commands yourself. Don't skip the verification step.
+You are being asked to configure the local opencode installation on this machine to use a custom system prompt instead of the built-in default. This environment is git-bash on Windows with no public internet access (an internal npm registry is reachable for downloading dependencies, e.g. in steps 6/7 — but not for publishing anything). The repo itself gets here one of two ways: (a) downloaded elsewhere as a zip and transferred over, already extracted, or (b) pulled directly through the internal npm mirror with `npm pack @kealthas-dev/opencode-toolkit` and extracted (`tar -xzf kealthas-dev-opencode-toolkit-*.tgz`), landing in a `package/` directory — the equivalent flow was verified working 2026-09-18 under this repo's prior name (`opencode-qwen-prompt`); re-verify after the 2026-09-19 rename to `opencode-toolkit` before relying on it again. Either way you end up with one plain extracted directory; step 0 below just needs to find it, whichever name it has. Do not attempt `git clone` or any other network fetch beyond that. Follow these steps in order, running the commands yourself. Don't skip the verification step.
 
 ## 0. Find the opencode config directory and the extracted source
 
@@ -19,16 +19,16 @@ echo "$CONFIG_DIR"
 echo "$CACHE_DIR"
 ```
 
-Now find where the extracted source landed, somewhere on this machine (Desktop, Downloads, wherever it was extracted to). Its name depends on how it got here: `opencode-qwen-prompt-master` if it's the GitHub zip export (branch name appended, unless renamed), or `package` if it's an extracted `npm pack` tarball. Locate it, e.g.:
+Now find where the extracted source landed, somewhere on this machine (Desktop, Downloads, wherever it was extracted to). Its name depends on how it got here: `opencode-toolkit-master` if it's the GitHub zip export (branch name appended, unless renamed), or `package` if it's an extracted `npm pack` tarball. Locate it, e.g.:
 
 ```bash
-find ~/Desktop ~/Downloads -maxdepth 2 \( -iname "opencode-qwen-prompt*" -o -iname "package" \) -type d 2>/dev/null
+find ~/Desktop ~/Downloads -maxdepth 2 \( -iname "opencode-toolkit*" -o -iname "package" \) -type d 2>/dev/null
 ```
 
 Set it as a variable — substitute the real path you found:
 
 ```bash
-SRC_DIR="/path/to/opencode-qwen-prompt-master"
+SRC_DIR="/path/to/opencode-toolkit-master"
 ls "$SRC_DIR"   # sanity check: should show README.md, deploy/, etc.
 ```
 

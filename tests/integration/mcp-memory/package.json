@@ -1,5 +1,5 @@
 {
-  "name": "opencode-qwen-prompt-mcp-memory-test",
+  "name": "opencode-toolkit-mcp-memory-test",
   "version": "1.0.0",
   "type": "module",
   "private": true,

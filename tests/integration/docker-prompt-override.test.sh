@@ -20,7 +20,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-IMAGE="opencode-qwen-prompt-dev:latest"
+IMAGE="opencode-toolkit-dev:latest"
 
 # The container's real ENTRYPOINT (docker-entrypoint.sh) generates
 # opencode.jsonc from scratch on every start now (see docker-notes.md) -
