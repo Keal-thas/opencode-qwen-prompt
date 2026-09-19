@@ -7,7 +7,9 @@
 # instance), and the loki MCP server test (needs a real Loki instance) -
 # both guaranteed reachable here because docker/dev.sh brings the shared
 # `oracle`/`loki` services up before this container even starts, see
-# docker/docker-notes.md.
+# docker/docker-notes.md. Also the memory MCP server test - needs only
+# network access to install the real upstream npm package, no backing
+# service.
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
@@ -36,3 +38,7 @@ echo "== oracle MCP server integration test (real Oracle instance) =="
 echo
 echo "== loki MCP server integration test (real Loki instance) =="
 (cd mcp/loki && npm install --no-audit --no-fund && node --test loki.test.mjs)
+
+echo
+echo "== memory MCP server integration test (official @modelcontextprotocol/server-memory package) =="
+(cd tests/integration/mcp-memory && npm install --no-audit --no-fund && node --test memory.test.mjs)

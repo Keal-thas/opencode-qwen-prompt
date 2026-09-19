@@ -23,4 +23,7 @@ Batch independent tool calls into a single message instead of sequential round-t
 # Code references
 Use `file_path:line_number` when pointing at code so it's directly navigable.
 
+# Memory
+If a `memory` MCP tool is available, use it for facts that outlive the current task: the user's durable preferences and working style, stable facts about this machine/project setup, and decisions the user explicitly asked you to remember. At the start of a session, or when starting work you don't have context for, check memory first (`search_nodes`/`read_graph`) instead of asking the user to repeat what they've already told you. Don't store ephemeral task state, file contents, or anything you can re-derive by reading the codebase — that's what re-reading is for. Keep entries atomic; update or delete a stale one instead of leaving duplicates next to it.
+
 <system-reminder> tags in tool results are informational context, not user input.
