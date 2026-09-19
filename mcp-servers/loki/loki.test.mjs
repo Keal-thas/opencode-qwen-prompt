@@ -4,7 +4,7 @@
 // Not something this test can mock: it exercises the real Loki HTTP query
 // API round-trip. Lives here (not under tests/) so Node's module
 // resolution finds this package's own node_modules - run via
-// `node --test mcp/loki/loki.test.mjs` after `npm install` in this
+// `node --test mcp-servers/loki/loki.test.mjs` after `npm install` in this
 // directory (see tests/run-in-container.sh).
 //
 // server.js is a persistent HTTP server (opencode connects to it as
@@ -14,7 +14,7 @@
 // line on stderr, then drives it over the real Streamable HTTP transport.
 //
 // This server's tools are read-only, so there's no MCP tool that can seed
-// test data the way mcp/oracle/oracle.test.mjs's CREATE TABLE/INSERT does
+// test data the way mcp-servers/oracle/oracle.test.mjs's CREATE TABLE/INSERT does
 // through oracle_query - instead this test pushes its own log lines
 // straight to Loki's own push API (POST /loki/api/v1/push), independent
 // of the MCP server entirely, then reads them back through the tools.
@@ -68,7 +68,7 @@ async function stopServer(child) {
 
 // A fresh label value per run, not a fixed one - this Loki instance is a
 // shared fixture (see docker-notes.md), so a fixed value could collide
-// with a concurrent test run the same way mcp/oracle/oracle.test.mjs's
+// with a concurrent test run the same way mcp-servers/oracle/oracle.test.mjs's
 // dynamic table name avoids colliding with a concurrent Oracle test.
 const testAppLabel = `loki_mcp_test_${Date.now()}`;
 const testLogLine = `hello from loki mcp test ${Date.now()}`;

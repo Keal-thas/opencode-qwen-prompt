@@ -2,18 +2,18 @@
 // JSON-RPC request/response correlation, the initialize/initialized
 // handshake, and just enough document sync (didOpen/didClose) for one-shot
 // navigation queries. Deliberately not a generic "any language, any editor"
-// framework - built for exactly what mcp/java-lsp and mcp/spring-lsp need
+// framework - built for exactly what mcp-servers/java-lsp and mcp-servers/spring-lsp need
 // (spawn one real LSP server, keep it alive, answer position-based queries
 // against it) and copied verbatim between the two packages rather than
-// pulled in as a shared npm dependency, matching this repo's mcp/ packages
+// pulled in as a shared npm dependency, matching this repo's mcp-servers/ packages
 // being independently installable (see plugins/'s per-package tarball
 // rationale in the root CLAUDE.md for the same reasoning applied there).
 //
 // Wire protocol and the exact client capabilities needed to avoid the
 // server crashing during initialize were verified against two real
 // servers (Eclipse JDT LS / jdtls, and VMware's spring-boot-language-server
-// 2.5.0-SNAPSHOT) during development - see mcp/java-lsp/README.md and
-// mcp/spring-lsp/README.md's Status sections for what was actually run.
+// 2.5.0-SNAPSHOT) during development - see mcp-servers/java-lsp/README.md and
+// mcp-servers/spring-lsp/README.md's Status sections for what was actually run.
 
 import { spawn } from "node:child_process";
 import { readFile } from "node:fs/promises";

@@ -66,7 +66,7 @@ function resolveTimeParam(value) {
 // stateless GET; this helper just centralizes URL-building, the optional
 // auth headers, and turning a non-2xx/network failure into a clean
 // {success: false} instead of a thrown error - mirroring the shape
-// executeQuery() returns in mcp/oracle/server.js, for the same reason:
+// executeQuery() returns in mcp-servers/oracle/server.js, for the same reason:
 // tool results should never surface as a raw MCP protocol error.
 async function lokiFetch(path, params) {
   const url = new URL(path, LOKI_BASE_URL);
@@ -204,7 +204,7 @@ function createMcpServer() {
 }
 
 // Stateless mode (sessionIdGenerator: undefined) with a fresh Server +
-// transport pair per request - same shell as mcp/oracle/server.js, for the
+// transport pair per request - same shell as mcp-servers/oracle/server.js, for the
 // same reason (the SDK's own reference stateless Streamable HTTP server;
 // no session state worth sharing between calls, and sharing one pair would
 // just mean concurrent requests fighting over the same transport).
