@@ -103,7 +103,7 @@ This relies on opencode's own internal package-cache behavior, not something its
 
 ## 5. (Optional) Install the hook-logger / llm-review-gate plugins
 
-Two more opencode plugins live in this repo, in `plugins/` — general-purpose tooling, unrelated to the Qwen prompt override itself, so skip this step entirely unless you specifically want one or both. Each ships as its own separate tarball, so you can install either one independently:
+Two more opencode plugins live in this repo, in `plugins/` — general-purpose tooling, unrelated to the prompt override itself, so skip this step entirely unless you specifically want one or both. Each ships as its own separate tarball, so you can install either one independently:
 
 - `hook-logger.ts` — logs essentially every opencode hook event (chat, tool execution, permission asks, compaction, etc.) as JSONL under `~/opencode-hook-output/`, for debugging/observability.
 - `llm-review-gate.ts` — gates `bash` tool calls behind an LLM safety review: before a command runs, it's sent to a hidden internal opencode session for an ALLOW/BLOCK verdict, layered on top of (not replacing) opencode's own permission config. Fails open on review errors/timeouts by default. This changes real runtime behavior (an extra hidden model call before every `bash` call) — make sure that's actually wanted before installing it.
@@ -239,7 +239,7 @@ This knowledge graph will contain whatever the model decides is worth rememberin
 Run a trivial request against your actual local model:
 
 ```bash
-opencode run --model <your-provider>/<your-qwen-model> "say hi in one word"
+opencode run --model <your-provider>/<your-model> "say hi in one word"
 ```
 
 If you installed the plugin in step 4, check what actually got sent:

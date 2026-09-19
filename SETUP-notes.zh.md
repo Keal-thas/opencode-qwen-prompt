@@ -48,7 +48,7 @@ tar xzf "$SRC_DIR/plugins/system-prompt-tools/opencode-system-prompt-tools-1.0.0
 
 ## 5. (可选)装 hook-logger / llm-review-gate
 
-跟 Qwen prompt 覆盖无关,不需要就跳过.装法跟第 4 步一样,两个各自打成独立 tarball,想装哪个装哪个:
+跟 prompt 覆盖无关,不需要就跳过.装法跟第 4 步一样,两个各自打成独立 tarball,想装哪个装哪个:
 
 ```
 mkdir -p "$CACHE_DIR/packages/opencode-hook-logger@1.0.0/node_modules/opencode-hook-logger"
