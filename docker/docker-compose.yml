@@ -27,7 +27,7 @@ services:
     # file otherwise has. Known residual risk: two worktrees building
     # concurrently with different uncommitted Dockerfile content can
     # race on this tag (see TODO.md) - accepted, not fixed here.
-    image: opencode-qwen-prompt-dev:latest
+    image: opencode-toolkit-dev:latest
     # No fixed `container_name:` though - letting Compose auto-derive it
     # from (the now worktree-hashed) COMPOSE_PROJECT_NAME is what makes
     # 20 concurrent `run --rm` calls in the same project never collide
@@ -83,8 +83,8 @@ networks:
   # projects; declared external here so this (worktree-scoped) project
   # can join them without owning or namespacing them.
   oracle-net:
-    name: opencode-qwen-prompt-oracle-net
+    name: opencode-toolkit-oracle-net
     external: true
   loki-net:
-    name: opencode-qwen-prompt-loki-net
+    name: opencode-toolkit-loki-net
     external: true

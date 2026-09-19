@@ -8,7 +8,7 @@ SETUP.md 由 opencode 自己在受限机器上执行(没有公网,先把仓库�
 
 ## 0. 确认目录 + 找到源码
 
-`opencode debug paths` 打印各目录,`config` 行是要改的目标目录(记作 $CONFIG_DIR),`cache` 行(记作 $CACHE_DIR)第 4/5 步要用.再确认解压出来的 `opencode-qwen-prompt-master` 文件夹确实存在.
+`opencode debug paths` 打印各目录,`config` 行是要改的目标目录(记作 $CONFIG_DIR),`cache` 行(记作 $CACHE_DIR)第 4/5 步要用.再确认解压出来的 `opencode-toolkit-master` 文件夹确实存在.
 
 ## 1. 拷贝 prompt 文件
 

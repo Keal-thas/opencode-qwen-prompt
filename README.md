@@ -1,6 +1,6 @@
 # opencode tooling workspace
 
-A workspace for building on top of `opencode` (the CLI coding agent): a system-prompt override for a specific Qwen deployment, custom opencode plugins, a script for using opencode to analyze a large codebase, and MCP servers for LAN-internal ops tooling. The prompt override was the first piece and gives the repo its name, but it's one component — see "Repo layout" below for the rest.
+A workspace for building on top of `opencode` (the CLI coding agent): a system-prompt override for a specific Qwen deployment, custom opencode plugins, a script for using opencode to analyze a large codebase, and MCP servers for LAN-internal ops tooling. The prompt override was the first piece and originally gave the repo its name (`opencode-qwen-prompt`), but it's always been just one component — renamed to `opencode-toolkit` on 2026-09-19 to stop the old name implying it was the main feature and everything else a side effect. See "Repo layout" below for the rest.
 
 [SETUP.md](SETUP.md) has the prompt override's setup instructions, written to be handed directly to an agent and executed step by step (the target machine is network-restricted, not something to do by hand repeatedly). This README is the human-readable explanation of what it does and why. [SETUP-notes.zh.md](SETUP-notes.zh.md) is a separate Chinese walkthrough of the same steps, for a human watching the deployment — not meant to be executed literally (hence not named `SETUP.zh.md`).
 
@@ -17,7 +17,7 @@ A workspace for building on top of `opencode` (the CLI coding agent): a system-p
 | `tests/` | Automated tests covering this workspace's feature points; `./tests/run-all.sh` is the entry point — see `tests/README.md` |
 | `memory/` | Git-tracked project memory |
 | `scripts/` | One-off release/maintenance scripts, e.g. `publish-npm.sh` |
-| `package.json` / `.npmignore` | Package the whole git-tracked tree as `@kealthas-dev/opencode-qwen-prompt` on public npmjs.com, purely as a second download channel for the restricted target machine's internal npm mirror (`npm pack`) alongside the GitHub Release zip below — see CLAUDE.md |
+| `package.json` / `.npmignore` | Package the whole git-tracked tree as `@kealthas-dev/opencode-toolkit` on public npmjs.com, purely as a second download channel for the restricted target machine's internal npm mirror (`npm pack`) alongside the GitHub Release zip below — see CLAUDE.md |
 | `CLAUDE.md` | Working notes for whoever edits this repo further |
 | `TODO.md` | Concrete follow-up work still to be done |
 

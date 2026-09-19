@@ -3,7 +3,7 @@
 # genuinely shared test fixture across every worktree, not per-worktree
 # state. A fixed project name here, unlike the worktree-hashed one dev.sh
 # exports for the other file.
-name: opencode-qwen-prompt-loki
+name: opencode-toolkit-loki
 
 services:
   # Real Loki instance backing mcp/loki/'s tests and interactive use.
@@ -18,7 +18,7 @@ services:
   # port from the host instead - see that script's own comment.
   loki:
     image: grafana/loki:${LOKI_VERSION:?set LOKI_VERSION in .env}
-    container_name: opencode-qwen-prompt-loki-test
+    container_name: opencode-toolkit-loki-test
     ports:
       # Host-side only, for docker/dev.sh's own readiness polling (the
       # distroless image can't self-report readiness via a container-
@@ -43,4 +43,4 @@ networks:
   # true`, regardless of which worktree-hashed project is asking - same
   # pattern as oracle-net in docker-compose.oracle.yml.
   loki-net:
-    name: opencode-qwen-prompt-loki-net
+    name: opencode-toolkit-loki-net

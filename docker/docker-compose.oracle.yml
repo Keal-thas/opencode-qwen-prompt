@@ -4,7 +4,7 @@
 # (see docker/dev.sh and docs/lessons-learned.md for why opencode-dev
 # needed per-worktree isolation). A fixed project name here, unlike the
 # worktree-hashed one dev.sh exports for the other file.
-name: opencode-qwen-prompt-oracle
+name: opencode-toolkit-oracle
 
 services:
   # Real Oracle instance backing mcp/oracle/'s tests and interactive use.
@@ -14,7 +14,7 @@ services:
   # read-mostly test fixture, not per-session state.
   oracle:
     image: gvenzl/oracle-free:${ORACLE_FREE_VERSION:?set ORACLE_FREE_VERSION in .env}
-    container_name: opencode-qwen-prompt-oracle-test
+    container_name: opencode-toolkit-oracle-test
     environment:
       - ORACLE_PASSWORD=${ORACLE_SYS_PASSWORD:?set ORACLE_SYS_PASSWORD in .env}
       - APP_USER=${ORACLE_APP_USER:?set ORACLE_APP_USER in .env}
@@ -41,4 +41,4 @@ networks:
   # so docker-compose.yml can reference it by a fixed name as `external:
   # true`, regardless of which worktree-hashed project is asking.
   oracle-net:
-    name: opencode-qwen-prompt-oracle-net
+    name: opencode-toolkit-oracle-net

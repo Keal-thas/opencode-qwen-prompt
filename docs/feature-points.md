@@ -1,4 +1,4 @@
-# Feature points — opencode-qwen-prompt
+# Feature points — opencode-toolkit
 
 A feature-by-feature inventory of this workspace. Index only — details in `feature-points/`. Test coverage notes reference `tests/` (see `tests/README.md` for the canonical, test-focused breakdown). Update this when a feature point is added, removed, or its test coverage changes.
 

@@ -36,7 +36,7 @@ before(async () => {
     args: [serverEntry],
     env: { ...process.env, MEMORY_FILE_PATH: memoryFilePath },
   });
-  client = new Client({ name: "opencode-qwen-prompt-test", version: "1.0.0" }, { capabilities: {} });
+  client = new Client({ name: "opencode-toolkit-test", version: "1.0.0" }, { capabilities: {} });
   await client.connect(transport);
 });
 
