@@ -59,7 +59,6 @@ The first three are safety/quality guardrails, not hand-holding. The fourth is d
 
 ### Status / open items
 
-- **Never tested against the actual vLLM + Qwen setup** — only validated against opencode's own hosted free models on a separate dev machine. Run the diagnostic plugin once against the real setup before trusting this.
 - The target machine runs opencode as an offline single-exe build with git-bash, but has no internet — the repo is downloaded as a zip on a separate machine with internet, then transferred over. SETUP.md assumes the extracted copy is already on disk and works entirely offline from there.
 
 See [TODO.md](TODO.md) for concrete planned/needed follow-up work.

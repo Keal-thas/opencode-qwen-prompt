@@ -47,6 +47,8 @@ The Dockerfile still uses `opencode debug config` as the step that reliably trig
 
 If a plugin's dependencies change, `npm pack` its source directory to regenerate the committed tarball, then rebuild the image (`docker/dev.sh build`) to re-warm — same mental model as bumping `OPENCODE_VERSION`. Editing `plugins/system-prompt-tools/system-prompt-tools.ts` on the host no longer takes effect in a running container without both steps, unlike `deploy/system-prompt.txt` (see "What actually persists, and where" above). `hook-logger`/`llm-review-gate` are not pre-warmed into the image at all (purely opt-in, not wired into this sandbox's default config) — installing them here would mean manually running the same `tar`/`opencode.jsonc` steps SETUP.md documents for the real target machine.
 
+This per-plugin tarball packaging is deliberately more work than opencode's own documented local-plugin-directory mechanism (`~/.config/opencode/plugins/*.ts`, auto-loaded with zero packaging at all) — that simpler mechanism gives every local plugin one shared dependency tree via a single `$CONFIG_DIR/package.json`, with no per-plugin version isolation, which is exactly the tradeoff this per-plugin tarball approach avoids.
+
 ## Provider API keys — loaded from `~/.keys`, never in .zshrc or the repo
 
 `docker-compose.yml` bind-mounts `${HOME}/.keys` read-only to `/home/dev/.keys`. `docker-entrypoint.sh` reads specific files from there into env vars (e.g. `DEEPSEEK_API_KEY` from `~/.keys/.deepseek-key`) before dropping to the `dev` user — scoped to that container's process tree only, nothing persisted to the Mac's shell environment or written into this repo. An already-set `DEEPSEEK_API_KEY` in the invoking shell still wins, for a one-off override.

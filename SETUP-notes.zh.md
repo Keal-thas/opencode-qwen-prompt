@@ -31,7 +31,7 @@ OPENCODE_DISABLE_MODELS_FETCH=1
 
 ## 4. (建议做)装查看器插件
 
-装这个插件是为了能亲眼看到真正发给模型的 prompt——这是第一次对着真 Qwen 模型跑这套配置,之前只用免费云模型验证过.做法:把 `plugins/system-prompt-tools/opencode-system-prompt-tools-1.0.0.tgz` 解包进 `$CACHE_DIR/packages/opencode-system-prompt-tools@1.0.0/`,再在 opencode.json 的 plugin 数组里写裸的 `"opencode-system-prompt-tools@1.0.0"`(不带路径):
+装这个插件是为了能亲眼看到真正发给模型的 prompt——opencode.json 语法没错不代表覆盖真的在运行时生效了,这是唯一能确认的办法.做法:把 `plugins/system-prompt-tools/opencode-system-prompt-tools-1.0.0.tgz` 解包进 `$CACHE_DIR/packages/opencode-system-prompt-tools@1.0.0/`,再在 opencode.json 的 plugin 数组里写裸的 `"opencode-system-prompt-tools@1.0.0"`(不带路径):
 
 ```
 mkdir -p "$CACHE_DIR/packages/opencode-system-prompt-tools@1.0.0/node_modules/opencode-system-prompt-tools"
